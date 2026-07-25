@@ -74,7 +74,7 @@ func main() {
 		g.Update()
 	}()
 
-	win = g.NewMasterWindow("Vencord Installer", 1200, 800, 0)
+	win = g.NewMasterWindow("Vencord Arabic Installer", 1200, 800, 0)
 
 	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
 	if err != nil {
@@ -441,8 +441,8 @@ func renderInstaller() g.Widget {
 		g.Style().SetFontSize(20).To(
 			renderErrorCard(
 				DiscordYellow,
-				"**Github** and **vencord.dev** are the only official places to get Vencord. Any other site claiming to be us is malicious.\n"+
-					"If you downloaded from any other source, you should delete / uninstall everything immediately, run a malware scan and change your Discord password.",
+				"This is an unofficial Arabic-focused fork based on Vencord. It is not affiliated with Discord or the official Vencord team.\n"+
+					"Source code and releases: github.com/ShadowUR0. Use client modifications at your own risk.",
 				90,
 			),
 		),
@@ -553,7 +553,7 @@ func renderInstaller() g.Widget {
 								}
 							}).
 							Size((w-40)/4, 50),
-						Tooltip("Reinstall & Update Vencord"),
+						Tooltip("Reinstall & Update Vencord Arabic"),
 					),
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordRed).
@@ -637,14 +637,14 @@ func loop() {
 		Layout(
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(
-					g.Label("Vencord Installer"),
+					g.Label("Vencord Arabic Installer"),
 				),
 			),
 
 			g.Dummy(0, 20),
 			g.Style().SetFontSize(20).To(
 				g.Row(
-					g.Label(Ternary(IsDevInstall, "Dev Install: ", "Vencord will be downloaded to: ")+FilesDir),
+					g.Label(Ternary(IsDevInstall, "Dev Install: ", "Vencord Arabic will be downloaded to: ")+FilesDir),
 					g.Style().
 						SetColor(g.StyleColorButton, DiscordBlue).
 						SetStyle(g.StyleVarFramePadding, 4, 4).
@@ -659,14 +659,14 @@ func loop() {
 				}, nil},
 				g.Dummy(0, 10),
 				g.Label("Installer Version: "+buildinfo.InstallerTag+" ("+buildinfo.InstallerGitHash+")"+Ternary(IsSelfOutdated, " - OUTDATED", "")),
-				g.Label("Local Vencord Version: "+InstalledHash),
+				g.Label("Local Vencord Arabic Version: "+InstalledHash),
 				&CondWidget{
 					GithubError == nil,
 					func() g.Widget {
 						if IsDevInstall {
 							return g.Label("Not updating Vencord due to being in DevMode")
 						}
-						return g.Label("Latest Vencord Version: " + LatestHash)
+						return g.Label("Latest Vencord Arabic Version: " + LatestHash)
 					}, func() g.Widget {
 						return renderErrorCard(DiscordRed, "Failed to fetch Info from GitHub: "+GithubError.Error(), 40)
 					},
