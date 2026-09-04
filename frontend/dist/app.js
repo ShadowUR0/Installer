@@ -2,206 +2,268 @@ const state = {
     status: null,
     selectedIndex: null,
     busy: false,
+    acceptedOpenAsar: false,
+    updatePromptShown: false,
+    autocomplete: [],
+    autocompleteIndex: 0,
 };
 
 const $ = (id) => document.getElementById(id);
-
 const els = {
     installList: $("installList"),
     emptyState: $("emptyState"),
-    refreshButton: $("refreshButton"),
+    customRadio: $("customRadio"),
+    customRadioRow: $("customRadioRow"),
+    customPath: $("customPath"),
+    autocomplete: $("autocomplete"),
+    downloadPrefix: $("downloadPrefix"),
+    directoryHint: $("directoryHint"),
+    filesDir: $("filesDir"),
+    installerVersion: $("installerVersion"),
     installedHash: $("installedHash"),
     latestHash: $("latestHash"),
-    filesDir: $("filesDir"),
-    selectedState: $("selectedState"),
-    selectedName: $("selectedName"),
-    selectedPath: $("selectedPath"),
+    latestLine: $("latestLine"),
+    githubError: $("githubError"),
     installButton: $("installButton"),
     repairButton: $("repairButton"),
     uninstallButton: $("uninstallButton"),
     openAsarButton: $("openAsarButton"),
     openFolderButton: $("openFolderButton"),
-    connectionDot: $("connectionDot"),
-    connectionText: $("connectionText"),
     modalBackdrop: $("modalBackdrop"),
     modalTitle: $("modalTitle"),
     modalMessage: $("modalMessage"),
-    modalIcon: $("modalIcon"),
+    modalExtra: $("modalExtra"),
     modalClose: $("modalClose"),
+    modalSecondary: $("modalSecondary"),
     busyOverlay: $("busyOverlay"),
     busyText: $("busyText"),
 };
+
+let modalPrimaryAction = null;
+let modalSecondaryAction = null;
 
 function backend() {
     return window.go?.main?.InstallerApp;
 }
 
-function runtime() {
-    return window.runtime;
+function currentInstall() {
+    if (state.selectedIndex == null || state.selectedIndex < 0) return null;
+    return state.status?.installs?.find((item) => item.index === state.selectedIndex) || null;
 }
 
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+function customSelected() {
+    return state.selectedIndex === -1;
 }
 
 function branchLabel(branch) {
     const labels = {
-        stable: "Discord Stable",
-        ptb: "Discord PTB",
-        canary: "Discord Canary",
-        development: "Discord Development",
+        stable: "Stable",
+        ptb: "Ptb",
+        canary: "Canary",
+        development: "Development",
+        dev: "Dev",
     };
-    return labels[branch] || `Discord ${branch || ""}`.trim();
+    if (labels[branch]) return labels[branch];
+    if (!branch) return "Discord";
+    return branch.charAt(0).toUpperCase() + branch.slice(1);
 }
 
-function currentInstall() {
-    return state.status?.installs?.find((item) => item.index === state.selectedIndex) || null;
+function decorateLiquidGlass(root = document) {
+    for (const element of root.querySelectorAll(".liquid-glass:not([data-liquid-ready])")) {
+        element.dataset.liquidReady = "true";
+        for (const side of ["top", "right", "bottom", "left"]) {
+            const edge = document.createElement("span");
+            edge.className = `glass-edge ${side}`;
+            edge.setAttribute("aria-hidden", "true");
+            element.appendChild(edge);
+        }
+
+        element.addEventListener("pointermove", (event) => {
+            const rect = element.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 100;
+            const y = ((event.clientY - rect.top) / Math.max(rect.height, 1)) * 100;
+            element.style.setProperty("--pointer-x", `${x}%`);
+            element.style.setProperty("--pointer-y", `${y}%`);
+            element.style.setProperty("--light-angle", `${Math.atan2(event.clientY - (rect.top + rect.height / 2), event.clientX - (rect.left + rect.width / 2))}rad`);
+        });
+        element.addEventListener("pointerleave", () => {
+            element.style.removeProperty("--pointer-x");
+            element.style.removeProperty("--pointer-y");
+        });
+    }
 }
 
-function setBusy(busy, text = "جار التنفيذ") {
+function setBusy(busy, text = "Working...") {
     state.busy = busy;
     els.busyText.textContent = text;
     els.busyOverlay.classList.toggle("hidden", !busy);
     updateButtons();
 }
 
-function showModal(title, message, error = false) {
+function showModal({
+    title,
+    message,
+    primaryLabel = "Ok",
+    secondaryLabel = null,
+    onPrimary = null,
+    onSecondary = null,
+}) {
     els.modalTitle.textContent = title;
     els.modalMessage.textContent = message;
-    els.modalIcon.textContent = error ? "!" : "✓";
-    els.modalBackdrop.querySelector(".modal").classList.toggle("error", error);
+    els.modalClose.textContent = primaryLabel;
+    els.modalSecondary.classList.toggle("hidden", !secondaryLabel);
+    if (secondaryLabel) els.modalSecondary.textContent = secondaryLabel;
+    modalPrimaryAction = onPrimary;
+    modalSecondaryAction = onSecondary;
     els.modalBackdrop.classList.remove("hidden");
+    decorateLiquidGlass(els.modalBackdrop);
 }
 
-function hideModal() {
+function closeModal() {
     els.modalBackdrop.classList.add("hidden");
+    modalPrimaryAction = null;
+    modalSecondaryAction = null;
 }
 
-function updateConnection() {
-    const status = state.status;
-    els.connectionDot.className = "connection-dot";
+els.modalClose.addEventListener("click", async () => {
+    const action = modalPrimaryAction;
+    closeModal();
+    if (action) await action();
+});
 
-    if (!status) {
-        els.connectionText.textContent = "جار الاتصال بالـBackend";
-        return;
-    }
+els.modalSecondary.addEventListener("click", async () => {
+    const action = modalSecondaryAction;
+    closeModal();
+    if (action) await action();
+});
+
+els.modalBackdrop.addEventListener("click", (event) => {
+    if (event.target === els.modalBackdrop && !modalSecondaryAction) closeModal();
+});
+
+function renderVersions() {
+    const status = state.status;
+    if (!status) return;
+
+    els.downloadPrefix.textContent = status.devInstall
+        ? "Dev Install:"
+        : "Vencord Arabic will be downloaded to:";
+    els.directoryHint.classList.toggle("hidden", status.devInstall);
+    els.filesDir.textContent = status.filesDir || "—";
+
+    const outdated = status.selfOutdated ? " - OUTDATED" : "";
+    els.installerVersion.textContent = `${status.installerTag || "Unknown"} (${status.installerHash || "Unknown"})${outdated}`;
+    els.installedHash.textContent = status.installedHash || "None";
+
+    els.githubError.classList.add("hidden");
+    els.latestLine.classList.remove("hidden");
     if (!status.ready) {
-        els.connectionText.textContent = "جار فحص احدث اصدار";
-        return;
-    }
-    if (!status.githubOk) {
-        els.connectionDot.classList.add("error");
-        els.connectionText.textContent = status.githubError || "تعذر الاتصال بخدمة الاصدارات";
-        return;
+        els.latestHash.textContent = "Checking...";
+    } else if (status.githubOk) {
+        els.latestHash.textContent = status.latestHash || "Unknown";
+    } else {
+        els.latestLine.classList.add("hidden");
+        els.githubError.textContent = `Failed to fetch Info from GitHub: ${status.githubError || "Unknown error"}`;
+        els.githubError.classList.remove("hidden");
+        decorateLiquidGlass(els.githubError.parentElement);
     }
 
-    els.connectionDot.classList.add("online");
-    els.connectionText.textContent = "جاهز";
+    if (status.filesDirError) {
+        showModal({
+            title: `Error: Failed to create ${status.filesDir}`,
+            message: `${status.filesDirError}\n\nResolve this error, then restart me!`,
+        });
+    }
 }
 
-function updateVersions() {
-    const status = state.status;
-    els.installedHash.textContent = status?.installedHash || "—";
-    els.latestHash.textContent = !status
-        ? "—"
-        : !status.ready
-            ? "جار الفحص"
-            : status.githubOk
-                ? (status.latestHash || "—")
-                : "غير متاح";
-    els.filesDir.textContent = status?.filesDir || "—";
+function selectInstall(index) {
+    state.selectedIndex = index;
+    for (const input of document.querySelectorAll('input[name="discord-install"]')) {
+        input.checked = Number(input.value) === index;
+    }
+    if (index === -1) els.customPath.focus();
+    updateButtons();
 }
 
 function renderInstalls() {
     const installs = state.status?.installs || [];
-    els.installList.innerHTML = "";
+    els.installList.replaceChildren();
     els.emptyState.classList.toggle("hidden", installs.length !== 0);
 
-    if (installs.length === 0) {
-        state.selectedIndex = null;
-        updateSelected();
-        return;
-    }
-
-    if (!installs.some((item) => item.index === state.selectedIndex)) {
-        state.selectedIndex = installs[0].index;
+    if (state.selectedIndex == null || (state.selectedIndex >= 0 && !installs.some((item) => item.index === state.selectedIndex))) {
+        state.selectedIndex = installs.length ? installs[0].index : -1;
     }
 
     for (const install of installs) {
-        const button = document.createElement("button");
-        button.className = `install-card${install.index === state.selectedIndex ? " selected" : ""}`;
-        button.dataset.index = install.index;
-        button.innerHTML = `
-            <div class="install-card-top">
-                <strong>${escapeHtml(branchLabel(install.branch))}</strong>
-                ${install.patched ? '<span class="patched-dot">Vencord مثبت</span>' : '<span class="status-badge">غير معدل</span>'}
-            </div>
-            <small>${escapeHtml(install.path)}</small>
-        `;
-        button.addEventListener("click", () => {
-            state.selectedIndex = install.index;
-            renderInstalls();
-            updateSelected();
-        });
-        els.installList.appendChild(button);
+        const label = document.createElement("label");
+        label.className = "radio-row";
+
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = "discord-install";
+        input.value = String(install.index);
+        input.checked = state.selectedIndex === install.index;
+        input.addEventListener("change", () => selectInstall(install.index));
+
+        const dot = document.createElement("span");
+        dot.className = "radio-dot";
+        dot.setAttribute("aria-hidden", "true");
+
+        const text = document.createElement("span");
+        text.className = "radio-text";
+        text.textContent = `${branchLabel(install.branch)} - ${install.path}${install.patched ? " [PATCHED]" : ""}`;
+
+        label.append(input, dot, text);
+        els.installList.appendChild(label);
     }
 
-    updateSelected();
-}
-
-function updateSelected() {
-    const install = currentInstall();
-    if (!install) {
-        els.selectedState.textContent = "لم تحدد نسخة";
-        els.selectedState.classList.remove("ready");
-        els.selectedName.textContent = "Discord";
-        els.selectedPath.textContent = "اختر نسخة من القائمة";
-        els.openAsarButton.querySelector("span:last-child").textContent = "OpenAsar";
-        updateButtons();
-        return;
-    }
-
-    els.selectedName.textContent = branchLabel(install.branch);
-    els.selectedPath.textContent = install.path;
-    els.selectedState.textContent = install.patched ? "Vencord Arabic مثبت" : "جاهز للتثبيت";
-    els.selectedState.classList.toggle("ready", install.patched);
-    els.openAsarButton.querySelector("span:last-child").textContent = install.openAsar ? "ازالة OpenAsar" : "تثبيت OpenAsar";
+    els.customRadio.checked = state.selectedIndex === -1;
     updateButtons();
 }
 
 function updateButtons() {
-    const install = currentInstall();
-    const blocked = state.busy || !install;
-    const githubUnavailable = state.status?.ready && !state.status?.githubOk;
+    const detected = currentInstall();
+    const hasChoice = state.selectedIndex != null;
+    const githubBlocked = state.status?.ready && !state.status?.githubOk;
+    const blocked = state.busy || !hasChoice;
 
-    els.installButton.disabled = blocked || githubUnavailable;
-    els.repairButton.disabled = blocked || githubUnavailable;
-    els.uninstallButton.disabled = blocked || !install?.patched;
+    els.installButton.disabled = blocked || githubBlocked;
+    els.repairButton.disabled = blocked || githubBlocked;
+    els.uninstallButton.disabled = blocked || (detected ? !detected.patched : false);
     els.openAsarButton.disabled = blocked;
-    els.refreshButton.disabled = state.busy;
+
+    if (detected) {
+        els.openAsarButton.textContent = detected.openAsar ? "Uninstall OpenAsar" : "Install OpenAsar";
+    } else {
+        els.openAsarButton.textContent = "(Un-)Install OpenAsar";
+    }
+
+    decorateLiquidGlass(document);
+}
+
+function maybeShowUpdatePrompt() {
+    if (!state.status?.selfOutdated || state.updatePromptShown) return;
+    state.updatePromptShown = true;
+    showModal({
+        title: "Your Installer is outdated!",
+        message: "Would you like to update now?\n\nOnce you press Update Now, the new installer will automatically be downloaded and the Installer will reopen.",
+        primaryLabel: "Update Now",
+        secondaryLabel: "Later",
+        onPrimary: updateInstaller,
+    });
 }
 
 function renderStatus(status) {
     state.status = status;
-    updateVersions();
-    updateConnection();
+    renderVersions();
     renderInstalls();
-    updateButtons();
-
-    if (status?.filesDirError) {
-        showModal("تعذر تجهيز مجلد Vencord", status.filesDirError, true);
-    }
+    maybeShowUpdatePrompt();
 }
 
 async function callBackend(method, ...args) {
     const api = backend();
     if (!api || typeof api[method] !== "function") {
-        throw new Error("لم تصبح واجهة Go جاهزة بعد");
+        throw new Error("The Go backend is not ready yet");
     }
     return api[method](...args);
 }
@@ -211,75 +273,132 @@ async function loadStatus(refresh = false) {
         const status = await callBackend(refresh ? "Refresh" : "GetStatus");
         renderStatus(status);
         return true;
-    } catch (error) {
-        els.connectionDot.className = "connection-dot error";
-        els.connectionText.textContent = "تعذر الاتصال بالـBackend";
+    } catch {
         return false;
     }
 }
 
-async function runOperation(method, busyText) {
-    const install = currentInstall();
-    if (!install || state.busy) return;
+function operationArgs() {
+    return [state.selectedIndex ?? -1, customSelected() ? els.customPath.value : ""];
+}
 
+async function runOperation(method, busyText) {
+    if (state.busy || state.selectedIndex == null) return;
     setBusy(true, busyText);
     try {
-        const result = await callBackend(method, install.index);
+        const result = await callBackend(method, ...operationArgs());
         if (result?.status) renderStatus(result.status);
-        showModal(result?.title || (result?.ok ? "تم" : "حدث خطا"), result?.message || "", !result?.ok);
+        showModal({
+            title: result?.title || (result?.ok ? "Success" : "Error"),
+            message: result?.message || "",
+        });
     } catch (error) {
-        showModal("حدث خطا", error?.message || String(error), true);
+        showModal({ title: "Oh No :(", message: error?.message || String(error) });
     } finally {
         setBusy(false);
     }
 }
 
-els.refreshButton.addEventListener("click", async () => {
-    els.refreshButton.textContent = "…";
-    await loadStatus(true);
-    els.refreshButton.textContent = "↻";
+async function updateInstaller() {
+    setBusy(true, "Updating Installer...");
+    try {
+        const result = await callBackend("UpdateInstaller");
+        if (!result?.ok) {
+            showModal({ title: result?.title || "Failed to update self!", message: result?.message || "Unknown error" });
+        }
+    } catch (error) {
+        showModal({ title: "Failed to update self!", message: error?.message || String(error) });
+    } finally {
+        setBusy(false);
+    }
+}
+
+els.customRadio.addEventListener("change", () => {
+    if (els.customRadio.checked) selectInstall(-1);
+});
+els.customRadioRow.addEventListener("click", () => selectInstall(-1));
+els.customPath.addEventListener("focus", () => selectInstall(-1));
+els.customPath.addEventListener("input", async () => {
+    selectInstall(-1);
+    state.autocompleteIndex = 0;
+    const value = els.customPath.value;
+    if (!value) {
+        state.autocomplete = [];
+        renderAutocomplete();
+        return;
+    }
+    try {
+        state.autocomplete = await callBackend("CompletePath", value);
+    } catch {
+        state.autocomplete = [];
+    }
+    renderAutocomplete();
 });
 
-els.installButton.addEventListener("click", () => runOperation("Install", "جار تثبيت Vencord Arabic"));
-els.repairButton.addEventListener("click", () => runOperation("Repair", "جار تحديث Vencord Arabic واصلاحه"));
-els.uninstallButton.addEventListener("click", () => runOperation("Uninstall", "جار الغاء تثبيت Vencord Arabic"));
-els.openAsarButton.addEventListener("click", () => runOperation("ToggleOpenAsar", "جار تحديث OpenAsar"));
+els.customPath.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab" || state.autocomplete.length === 0) return;
+    event.preventDefault();
+    const candidate = state.autocomplete[state.autocompleteIndex % state.autocomplete.length];
+    state.autocompleteIndex += 1;
+    els.customPath.value = candidate;
+    els.customPath.setSelectionRange(candidate.length, candidate.length);
+});
+
+function renderAutocomplete() {
+    els.autocomplete.replaceChildren();
+    els.autocomplete.classList.toggle("hidden", state.autocomplete.length === 0);
+    for (const candidate of state.autocomplete.slice(0, 8)) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.textContent = candidate;
+        row.addEventListener("mousedown", (event) => event.preventDefault());
+        row.addEventListener("click", () => {
+            els.customPath.value = candidate;
+            state.autocomplete = [];
+            renderAutocomplete();
+            els.customPath.focus();
+        });
+        els.autocomplete.appendChild(row);
+    }
+}
+
+els.installButton.addEventListener("click", () => runOperation("Install", "Installing Vencord Arabic..."));
+els.repairButton.addEventListener("click", () => runOperation("Repair", "Reinstalling / Repairing Vencord Arabic..."));
+els.uninstallButton.addEventListener("click", () => runOperation("Uninstall", "Uninstalling Vencord Arabic..."));
+els.openAsarButton.addEventListener("click", () => {
+    const detected = currentInstall();
+    if (!state.acceptedOpenAsar && (!detected || !detected.openAsar)) {
+        showModal({
+            title: "OpenAsar",
+            message: "OpenAsar is an open-source alternative of Discord desktop's app.asar.\nVencord is in no way affiliated with OpenAsar.\nYou're installing OpenAsar at your own risk.\n\nTo install OpenAsar, press Accept and click 'Install OpenAsar' again.",
+            primaryLabel: "Accept",
+            secondaryLabel: "Cancel",
+            onPrimary: () => { state.acceptedOpenAsar = true; },
+        });
+        return;
+    }
+    runOperation("ToggleOpenAsar", "Updating OpenAsar...");
+});
 
 els.openFolderButton.addEventListener("click", async () => {
     try {
         await callBackend("OpenFilesDirectory");
     } catch (error) {
-        showModal("تعذر فتح المجلد", error?.message || String(error), true);
+        showModal({ title: "Failed to open directory", message: error?.message || String(error) });
     }
 });
 
-els.modalClose.addEventListener("click", hideModal);
-els.modalBackdrop.addEventListener("click", (event) => {
-    if (event.target === els.modalBackdrop) hideModal();
-});
-
-for (const button of document.querySelectorAll("[data-action]")) {
-    button.addEventListener("click", () => {
-        const action = button.dataset.action;
-        const rt = runtime();
-        if (action === "minimise") rt?.WindowMinimise?.();
-        if (action === "close") rt?.Quit?.();
-    });
-}
-
 async function boot() {
+    decorateLiquidGlass(document);
     for (let attempt = 0; attempt < 50; attempt++) {
         if (await loadStatus(false)) break;
         await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     const poll = setInterval(async () => {
-        if (state.status?.ready) {
-            clearInterval(poll);
-            return;
-        }
         await loadStatus(false);
-    }, 650);
+        if (state.status?.ready) clearInterval(poll);
+    }, 700);
 }
 
 boot();
