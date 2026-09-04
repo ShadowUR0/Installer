@@ -13,12 +13,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/wailsapp/wails/v2"
-	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
@@ -34,12 +34,12 @@ var (
 )
 
 type InstallInfo struct {
-	Index      int    `json:"index"`
-	Branch     string `json:"branch"`
-	Path       string `json:"path"`
-	Patched    bool   `json:"patched"`
-	OpenAsar   bool   `json:"openAsar"`
-	Flatpak    bool   `json:"flatpak"`
+	Index       int    `json:"index"`
+	Branch      string `json:"branch"`
+	Path        string `json:"path"`
+	Patched     bool   `json:"patched"`
+	OpenAsar    bool   `json:"openAsar"`
+	Flatpak     bool   `json:"flatpak"`
 	DisplayName string `json:"displayName"`
 }
 
@@ -90,7 +90,10 @@ func (a *InstallerApp) refreshInstallsLocked() {
 func (a *InstallerApp) installInfosLocked() []InstallInfo {
 	result := make([]InstallInfo, 0, len(a.installs))
 	for i, d := range a.installs {
-		name := strings.ToUpper(d.branch[:1]) + d.branch[1:]
+		name := "Discord"
+		if d.branch != "" {
+			name = strings.ToUpper(d.branch[:1]) + d.branch[1:]
+		}
 		result = append(result, InstallInfo{
 			Index:       i,
 			Branch:      d.branch,
@@ -225,11 +228,16 @@ func (a *InstallerApp) ToggleOpenAsar(index int) OperationResult {
 }
 
 func (a *InstallerApp) OpenFilesDirectory() error {
-	if a.ctx == nil {
-		return errors.New("application is not ready")
+	var command *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		command = exec.Command("explorer", FilesDir)
+	case "darwin":
+		command = exec.Command("open", FilesDir)
+	default:
+		command = exec.Command("xdg-open", FilesDir)
 	}
-	wruntime.BrowserOpenURL(a.ctx, "file://"+FilesDir)
-	return nil
+	return command.Start()
 }
 
 func (a *InstallerApp) installAt(index int) (*DiscordInstall, error) {
@@ -300,23 +308,23 @@ func main() {
 
 	app := NewInstallerApp()
 	err := wails.Run(&options.App{
-		Title:             "Vencord Arabic Installer",
-		Width:             1080,
-		Height:            720,
-		MinWidth:          880,
-		MinHeight:         600,
-		Frameless:         true,
-		DisableResize:     false,
-		BackgroundColour:  &options.RGBA{R: 12, G: 14, B: 20, A: 0},
-		AssetServer:       &assetserver.Options{Assets: wailsAssets},
-		OnStartup:         app.startup,
-		Bind:              []interface{}{app},
+		Title:            "Vencord Arabic Installer",
+		Width:            1080,
+		Height:           720,
+		MinWidth:         880,
+		MinHeight:        600,
+		Frameless:        true,
+		DisableResize:    false,
+		BackgroundColour: &options.RGBA{R: 12, G: 14, B: 20, A: 0},
+		AssetServer:      &assetserver.Options{Assets: wailsAssets},
+		OnStartup:        app.startup,
+		Bind:             []interface{}{app},
 		Windows: &windows.Options{
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,
-			BackdropType:          windows.Acrylic,
-			DisableWindowIcon:     false,
-			Theme:                 windows.Dark,
+			BackdropType:         windows.Acrylic,
+			DisableWindowIcon:    false,
+			Theme:                windows.Dark,
 		},
 	})
 	if err != nil {
