@@ -51,6 +51,20 @@ var (
 	win *g.MasterWindow
 )
 
+var (
+	uiMutedText   = color.RGBA{R: 0xC4, G: 0xC7, B: 0xCD, A: 0xFF}
+	uiBlue        = color.RGBA{R: 0x63, G: 0x72, B: 0xE8, A: 0xFF}
+	uiBlueHover   = color.RGBA{R: 0x72, G: 0x80, B: 0xED, A: 0xFF}
+	uiBlueActive  = color.RGBA{R: 0x55, G: 0x63, B: 0xD2, A: 0xFF}
+	uiGreen       = color.RGBA{R: 0x5E, G: 0x9E, B: 0x78, A: 0xFF}
+	uiGreenHover  = color.RGBA{R: 0x6B, G: 0xAA, B: 0x84, A: 0xFF}
+	uiGreenActive = color.RGBA{R: 0x50, G: 0x8C, B: 0x69, A: 0xFF}
+	uiRed         = color.RGBA{R: 0xD8, G: 0x67, B: 0x69, A: 0xFF}
+	uiRedHover    = color.RGBA{R: 0xE2, G: 0x75, B: 0x77, A: 0xFF}
+	uiRedActive   = color.RGBA{R: 0xC2, G: 0x58, B: 0x5A, A: 0xFF}
+	uiWarning     = color.RGBA{R: 0xE1, G: 0xD4, B: 0x86, A: 0xFF}
+)
+
 //go:embed winres/icon.png
 var iconBytes []byte
 
@@ -74,7 +88,7 @@ func main() {
 		g.Update()
 	}()
 
-	win = g.NewMasterWindow("Vencord Arabic Installer", 1200, 800, 0)
+	win = g.NewMasterWindow("Vencord Arabic Installer", 1200, 720, 0)
 
 	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
 	if err != nil {
@@ -140,7 +154,11 @@ func handleUnpatch() {
 }
 
 func handleOpenAsar() {
-	if acceptedOpenAsar || getChosenInstall().IsOpenAsar() {
+	choice := getChosenInstall()
+	if choice == nil {
+		return
+	}
+	if acceptedOpenAsar || choice.IsOpenAsar() {
 		handleOpenAsarConfirmed()
 		return
 	}
@@ -274,10 +292,10 @@ func makeRadioOnChange(i int) func() {
 
 func renderFilesDirErr() g.Widget {
 	return g.Layout{
-		g.Dummy(0, 50),
+		g.Dummy(0, 42),
 		g.Style().
-			SetColor(g.StyleColorText, DiscordRed).
-			SetFontSize(30).
+			SetColor(g.StyleColorText, uiRed).
+			SetFontSize(28).
 			To(
 				g.Align(g.AlignCenter).To(
 					g.Label("Error: Failed to create: "+FilesDirErr.Error()),
@@ -289,8 +307,8 @@ func renderFilesDirErr() g.Widget {
 
 func Tooltip(label string) g.Widget {
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 11, 8).
-		SetStyleFloat(g.StyleVarWindowRounding, 10).
+		SetStyle(g.StyleVarWindowPadding, 12, 8).
+		SetStyleFloat(g.StyleVarWindowRounding, 12).
 		To(
 			g.Tooltip(label),
 		)
@@ -303,54 +321,73 @@ func InfoModal(id, title, description string) g.Widget {
 func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 	isDynamic := strings.HasPrefix(id, "#modal") && !strings.Contains(description, "\n")
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 32, 28).
-		SetStyleFloat(g.StyleVarWindowRounding, 18).
-		SetStyleFloat(g.StyleVarFrameRounding, 11).
+		SetStyle(g.StyleVarWindowPadding, 34, 30).
+		SetStyleFloat(g.StyleVarWindowRounding, 20).
+		SetStyleFloat(g.StyleVarFrameRounding, 12).
+		SetStyle(g.StyleVarItemSpacing, 10, 12).
 		To(
 			g.PopupModal(id).
 				Flags(g.WindowFlagsNoTitleBar | Ternary(isDynamic, g.WindowFlagsAlwaysAutoResize, 0)).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(28).To(
+						g.Style().SetFontSize(26).To(
 							g.Label(title),
 						),
-						g.Style().SetFontSize(19).To(
+						g.Dummy(0, 4),
+						g.Style().SetFontSize(18).To(
 							g.Label(description).Wrapped(isDynamic),
 						),
 						&CondWidget{id == "#scuffed-install", func() g.Widget {
 							return g.Column(
-								g.Dummy(0, 10),
-								g.Button("Take me there!").OnClick(func() {
-									// this issue only exists on windows so using Windows specific path is oki
-									username := os.Getenv("USERNAME")
-									programData := os.Getenv("PROGRAMDATA")
-									g.OpenURL("file://" + path.Join(programData, username))
-								}).Size(200, 38),
+								g.Dummy(0, 8),
+								g.Style().
+									SetColor(g.StyleColorButton, uiBlue).
+									SetColor(g.StyleColorButtonHovered, uiBlueHover).
+									SetColor(g.StyleColorButtonActive, uiBlueActive).
+									To(
+										g.Button("Take me there!").OnClick(func() {
+											username := os.Getenv("USERNAME")
+											programData := os.Getenv("PROGRAMDATA")
+											g.OpenURL("file://" + path.Join(programData, username))
+										}).Size(190, 40),
+									),
 							)
 						}, nil},
-						g.Dummy(0, 20),
+						g.Dummy(0, 14),
 						&CondWidget{isOpenAsar,
 							func() g.Widget {
 								return g.Row(
-									g.Button("Accept").
-										OnClick(func() {
-											acceptedOpenAsar = true
-											g.CloseCurrentPopup()
-										}).
-										Size(112, 38),
+									g.Style().
+										SetColor(g.StyleColorButton, uiBlue).
+										SetColor(g.StyleColorButtonHovered, uiBlueHover).
+										SetColor(g.StyleColorButtonActive, uiBlueActive).
+										To(
+											g.Button("Accept").
+												OnClick(func() {
+													acceptedOpenAsar = true
+													g.CloseCurrentPopup()
+												}).
+												Size(124, 40),
+										),
 									g.Button("Cancel").
 										OnClick(func() {
 											g.CloseCurrentPopup()
 										}).
-										Size(112, 38),
+										Size(124, 40),
 								)
 							},
 							func() g.Widget {
-								return g.Button("Ok").
-									OnClick(func() {
-										g.CloseCurrentPopup()
-									}).
-									Size(112, 38)
+								return g.Style().
+									SetColor(g.StyleColorButton, uiBlue).
+									SetColor(g.StyleColorButtonHovered, uiBlueHover).
+									SetColor(g.StyleColorButtonActive, uiBlueActive).
+									To(
+										g.Button("OK").
+											OnClick(func() {
+												g.CloseCurrentPopup()
+											}).
+											Size(124, 40),
+									)
 							},
 						},
 					),
@@ -359,53 +396,59 @@ func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 }
 
 func UpdateModal() g.Widget {
+	message := "A newer version of Vencord Arabic Installer is available.\n\nUpdate Now will download it and reopen the installer when the update finishes. The window may briefly appear unresponsive while the file is replaced."
+	if runtime.GOOS == "darwin" {
+		message += "\n\nAutomatic replacement is not supported on macOS, so Update Now will open the download page instead."
+	}
+
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 32, 28).
-		SetStyleFloat(g.StyleVarWindowRounding, 18).
-		SetStyleFloat(g.StyleVarFrameRounding, 11).
+		SetStyle(g.StyleVarWindowPadding, 36, 32).
+		SetStyleFloat(g.StyleVarWindowRounding, 20).
+		SetStyleFloat(g.StyleVarFrameRounding, 12).
+		SetStyle(g.StyleVarItemSpacing, 10, 12).
 		To(
 			g.PopupModal("#update-prompt").
 				Flags(g.WindowFlagsNoTitleBar | g.WindowFlagsAlwaysAutoResize).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(28).To(
-							g.Label("Your Installer is outdated!"),
+						g.Style().SetFontSize(26).To(
+							g.Label("Installer update available"),
 						),
-						g.Style().SetFontSize(19).To(
-							g.Label(
-								"Would you like to update now?\n\n"+
-									"Once you press Update Now, the new installer will automatically be downloaded.\n"+
-									"The installer will temporarily seem unresponsive. Just wait!\n"+
-									"Once the update is done, the Installer will automatically reopen.\n\n"+
-									"On MacOs, Auto updates are not supported, so it will instead open in browser.",
-							),
+						g.Dummy(0, 4),
+						g.Style().SetFontSize(18).To(
+							g.Label(message).Wrapped(true),
 						),
+						g.Dummy(0, 12),
 						g.Row(
-							g.Button("Update Now").
-								OnClick(func() {
-									if runtime.GOOS == "darwin" {
-										g.CloseCurrentPopup()
-										g.OpenURL(GetInstallerDownloadLink())
-										return
-									}
+							g.Style().
+								SetColor(g.StyleColorButton, uiBlue).
+								SetColor(g.StyleColorButtonHovered, uiBlueHover).
+								SetColor(g.StyleColorButtonActive, uiBlueActive).
+								To(
+									g.Button("Update Now").
+										OnClick(func() {
+											if runtime.GOOS == "darwin" {
+												g.CloseCurrentPopup()
+												g.OpenURL(GetInstallerDownloadLink())
+												return
+											}
 
-									err := UpdateSelf()
-									g.CloseCurrentPopup()
+											err := UpdateSelf()
+											g.CloseCurrentPopup()
 
-									if err != nil {
-										ShowModal("Failed to update self!", err.Error())
-									} else {
-										if err = RelaunchSelf(); err != nil {
-											ShowModal("Failed to restart self! Please do it manually.", err.Error())
-										}
-									}
-								}).
-								Size(118, 38),
+											if err != nil {
+												ShowModal("Failed to update self!", err.Error())
+											} else if err = RelaunchSelf(); err != nil {
+												ShowModal("Failed to restart self! Please do it manually.", err.Error())
+											}
+										}).
+										Size(136, 40),
+								),
 							g.Button("Later").
 								OnClick(func() {
 									g.CloseCurrentPopup()
 								}).
-								Size(100, 38),
+								Size(112, 40),
 						),
 					),
 				),
@@ -422,7 +465,7 @@ func ShowModal(title, desc string) {
 func renderInstaller() g.Widget {
 	candidates := makeAutoComplete()
 	wi, _ := win.GetSize()
-	w := float32(wi) - 96
+	w := float32(wi) - 88
 
 	var currentDiscord *DiscordInstall
 	if radioIdx != customChoiceIdx {
@@ -430,28 +473,29 @@ func renderInstaller() g.Widget {
 	}
 	var isOpenAsar = currentDiscord != nil && currentDiscord.IsOpenAsar()
 
-	if CanUpdateSelf() && !showedUpdatePrompt {
+	// Preview builds are intentionally not self-updated so UI testing is not blocked by a modal.
+	if CanUpdateSelf() && buildinfo.InstallerTag != "preview" && !showedUpdatePrompt {
 		showedUpdatePrompt = true
 		g.OpenPopup("#update-prompt")
 	}
 
 	layout := g.Layout{
-		g.Dummy(0, 18),
+		g.Dummy(0, 12),
 		g.Separator(),
-		g.Dummy(0, 8),
+		g.Dummy(0, 10),
 
-		g.Style().SetFontSize(18).To(
+		g.Style().SetFontSize(17).To(
 			renderErrorCard(
-				DiscordYellow,
+				uiWarning,
 				"This is an unofficial Arabic-focused fork based on Vencord. It is not affiliated with Discord or the official Vencord team.\n"+
 					"Source code and releases: github.com/ShadowUR0. Use client modifications at your own risk.",
-				84,
+				68,
 			),
 		),
 
-		g.Dummy(0, 10),
+		g.Dummy(0, 12),
 
-		g.Style().SetFontSize(28).To(
+		g.Style().SetFontSize(24).To(
 			g.Label("Please select an install to patch"),
 		),
 
@@ -464,15 +508,15 @@ func renderInstaller() g.Widget {
 		}, nil},
 
 		g.Style().
-			SetStyle(g.StyleVarItemSpacing, 10, 10).
-			SetFontSize(20).
+			SetStyle(g.StyleVarItemSpacing, 10, 12).
+			SetFontSize(18).
 			To(
 				g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
 					d := v.(*DiscordInstall)
 					//goland:noinspection GoDeprecation
 					text := strings.Title(d.branch) + " - " + d.path
 					if d.isPatched {
-						text += " [PATCHED]"
+						text += "  [PATCHED]"
 					}
 					return g.RadioButton(text, radioIdx == i).
 						OnChange(makeRadioOnChange(i))
@@ -484,39 +528,33 @@ func renderInstaller() g.Widget {
 
 		g.Dummy(0, 8),
 		g.Style().
-			SetStyle(g.StyleVarFramePadding, 14, 14).
-			SetStyleFloat(g.StyleVarFrameRounding, 11).
-			SetFontSize(19).
+			SetStyle(g.StyleVarFramePadding, 12, 12).
+			SetStyleFloat(g.StyleVarFrameRounding, 12).
+			SetFontSize(18).
 			To(
 				g.InputText(&customDir).Hint("The custom location").
 					Size(w - 16).
 					Flags(g.InputTextFlagsCallbackCompletion).
 					OnChange(onCustomInputChanged).
-					// this library has its own autocomplete but it's broken
 					Callback(
 						func(data imgui.InputTextCallbackData) int32 {
 							if len(candidates) == 0 {
 								return 0
 							}
-							// just wrap around
 							if autoCompleteIdx >= len(candidates) {
 								autoCompleteIdx = 0
 							}
 
-							// used by change handler
 							didAutoComplete = true
-
 							start := len(customDir)
-							// Delete previous auto complete
 							if lastAutoComplete != "" {
 								start -= len(lastAutoComplete)
 								data.DeleteBytes(start, len(lastAutoComplete))
-							} else if autoCompleteFile != "" { // delete partial input
+							} else if autoCompleteFile != "" {
 								start -= len(autoCompleteFile)
 								data.DeleteBytes(start, len(autoCompleteFile))
 							}
 
-							// Insert auto complete
 							lastAutoComplete = candidates[autoCompleteIdx].(string)
 							data.InsertBytes(start, []byte(lastAutoComplete))
 							autoCompleteIdx++
@@ -527,33 +565,33 @@ func renderInstaller() g.Widget {
 			),
 		g.RangeBuilder("AutoComplete", candidates, func(i int, v any) g.Widget {
 			dir := v.(string)
-			return g.Label(dir)
+			return g.Style().SetColor(g.StyleColorText, uiMutedText).SetFontSize(16).To(g.Label(dir))
 		}),
 
-		g.Dummy(0, 22),
+		g.Dummy(0, 18),
 
 		g.Style().
 			SetStyle(g.StyleVarItemSpacing, 12, 0).
-			SetFontSize(19).
+			SetFontSize(18).
 			To(
 				g.Row(
 					g.Style().
-						SetColor(g.StyleColorButton, DiscordGreen).
-						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x38, G: 0x91, B: 0x53, A: 0xFF}).
-						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x28, G: 0x6E, B: 0x3F, A: 0xFF}).
-						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetColor(g.StyleColorButton, uiGreen).
+						SetColor(g.StyleColorButtonHovered, uiGreenHover).
+						SetColor(g.StyleColorButtonActive, uiGreenActive).
+						SetStyleFloat(g.StyleVarFrameRounding, 14).
 						SetDisabled(GithubError != nil).
 						To(
 							g.Button("Install").
 								OnClick(handlePatch).
-								Size((w-48)/4, 56),
+								Size((w-48)/4, 52),
 							Tooltip("Patch the selected Discord Install"),
 						),
 					g.Style().
-						SetColor(g.StyleColorButton, DiscordBlue).
-						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x69, G: 0x74, B: 0xF5, A: 0xFF}).
-						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x4B, G: 0x57, B: 0xD6, A: 0xFF}).
-						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetColor(g.StyleColorButton, uiBlue).
+						SetColor(g.StyleColorButtonHovered, uiBlueHover).
+						SetColor(g.StyleColorButtonActive, uiBlueActive).
+						SetStyleFloat(g.StyleVarFrameRounding, 14).
 						SetDisabled(GithubError != nil).
 						To(
 							g.Button("Reinstall / Repair").
@@ -567,29 +605,29 @@ func renderInstaller() g.Widget {
 										}
 									}
 								}).
-								Size((w-48)/4, 56),
+								Size((w-48)/4, 52),
 							Tooltip("Reinstall & Update Vencord Arabic"),
 						),
 					g.Style().
-						SetColor(g.StyleColorButton, DiscordRed).
-						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0xF2, G: 0x57, B: 0x5A, A: 0xFF}).
-						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0xC9, G: 0x36, B: 0x39, A: 0xFF}).
-						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetColor(g.StyleColorButton, uiRed).
+						SetColor(g.StyleColorButtonHovered, uiRedHover).
+						SetColor(g.StyleColorButtonActive, uiRedActive).
+						SetStyleFloat(g.StyleVarFrameRounding, 14).
 						To(
 							g.Button("Uninstall").
 								OnClick(handleUnpatch).
-								Size((w-48)/4, 56),
+								Size((w-48)/4, 52),
 							Tooltip("Unpatch the selected Discord Install"),
 						),
 					g.Style().
-						SetColor(g.StyleColorButton, Ternary(isOpenAsar, DiscordRed, DiscordGreen)).
-						SetColor(g.StyleColorButtonHovered, Ternary(isOpenAsar, color.RGBA{R: 0xF2, G: 0x57, B: 0x5A, A: 0xFF}, color.RGBA{R: 0x38, G: 0x91, B: 0x53, A: 0xFF})).
-						SetColor(g.StyleColorButtonActive, Ternary(isOpenAsar, color.RGBA{R: 0xC9, G: 0x36, B: 0x39, A: 0xFF}, color.RGBA{R: 0x28, G: 0x6E, B: 0x3F, A: 0xFF})).
-						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetColor(g.StyleColorButton, Ternary(isOpenAsar, uiRed, uiGreen)).
+						SetColor(g.StyleColorButtonHovered, Ternary(isOpenAsar, uiRedHover, uiGreenHover)).
+						SetColor(g.StyleColorButtonActive, Ternary(isOpenAsar, uiRedActive, uiGreenActive)).
+						SetStyleFloat(g.StyleVarFrameRounding, 14).
 						To(
 							g.Button(Ternary(isOpenAsar, "Uninstall OpenAsar", Ternary(currentDiscord != nil, "Install OpenAsar", "(Un-)Install OpenAsar"))).
 								OnClick(handleOpenAsar).
-								Size((w-48)/4, 56),
+								Size((w-48)/4, 52),
 							Tooltip("Manage OpenAsar"),
 						),
 				),
@@ -623,9 +661,9 @@ func renderInstaller() g.Widget {
 func renderErrorCard(col color.Color, message string, height float32) g.Widget {
 	return g.Style().
 		SetColor(g.StyleColorChildBg, col).
-		SetStyleFloat(g.StyleVarAlpha, 0.86).
-		SetStyle(g.StyleVarWindowPadding, 14, 12).
-		SetStyleFloat(g.StyleVarChildRounding, 13).
+		SetStyleFloat(g.StyleVarAlpha, 0.95).
+		SetStyle(g.StyleVarWindowPadding, 16, 10).
+		SetStyleFloat(g.StyleVarChildRounding, 14).
 		To(
 			g.Child().
 				Size(g.Auto, height).
@@ -640,7 +678,7 @@ func renderErrorCard(col color.Color, message string, height float32) g.Widget {
 }
 
 func loop() {
-	g.PushWindowPadding(48, 48)
+	g.PushWindowPadding(44, 40)
 
 	g.SingleWindow().
 		RegisterKeyboardShortcuts(
@@ -657,21 +695,21 @@ func loop() {
 		).
 		Layout(
 			g.Align(g.AlignCenter).To(
-				g.Style().SetFontSize(38).To(
+				g.Style().SetFontSize(36).To(
 					g.Label("Vencord Arabic Installer"),
 				),
 			),
 
-			g.Dummy(0, 18),
-			g.Style().SetFontSize(19).To(
+			g.Dummy(0, 14),
+			g.Style().SetFontSize(18).To(
 				g.Row(
 					g.Label(Ternary(IsDevInstall, "Dev Install: ", "Vencord Arabic will be downloaded to: ")+FilesDir),
 					g.Style().
-						SetColor(g.StyleColorButton, DiscordBlue).
-						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x69, G: 0x74, B: 0xF5, A: 0xFF}).
-						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x4B, G: 0x57, B: 0xD6, A: 0xFF}).
-						SetStyle(g.StyleVarFramePadding, 12, 6).
-						SetStyleFloat(g.StyleVarFrameRounding, 10).
+						SetColor(g.StyleColorButton, uiBlue).
+						SetColor(g.StyleColorButtonHovered, uiBlueHover).
+						SetColor(g.StyleColorButtonActive, uiBlueActive).
+						SetStyle(g.StyleVarFramePadding, 11, 5).
+						SetStyleFloat(g.StyleVarFrameRounding, 11).
 						To(
 							g.Button("Open Directory").OnClick(func() {
 								g.OpenURL("file://" + FilesDir)
@@ -679,20 +717,24 @@ func loop() {
 						),
 				),
 				&CondWidget{!IsDevInstall, func() g.Widget {
-					return g.Label("To customise this location, set the environment variable 'VENCORD_USER_DATA_DIR' and restart me").Wrapped(true)
+					return g.Style().SetColor(g.StyleColorText, uiMutedText).SetFontSize(16).To(
+						g.Label("To customise this location, set the environment variable 'VENCORD_USER_DATA_DIR' and restart me").Wrapped(true),
+					)
 				}, nil},
-				g.Dummy(0, 12),
-				g.Label("Installer Version: "+buildinfo.InstallerTag+" ("+buildinfo.InstallerGitHash+")"+Ternary(IsSelfOutdated, " - OUTDATED", "")),
-				g.Label("Local Vencord Arabic Version: "+InstalledHash),
+				g.Dummy(0, 10),
+				g.Style().SetColor(g.StyleColorText, uiMutedText).SetFontSize(16).To(
+					g.Label("Installer Version: "+buildinfo.InstallerTag+" ("+buildinfo.InstallerGitHash+")"+Ternary(IsSelfOutdated && buildinfo.InstallerTag != "preview", " - OUTDATED", "")),
+					g.Label("Local Vencord Arabic Version: "+InstalledHash),
+				),
 				&CondWidget{
 					GithubError == nil,
 					func() g.Widget {
 						if IsDevInstall {
-							return g.Label("Not updating Vencord due to being in DevMode")
+							return g.Style().SetColor(g.StyleColorText, uiMutedText).SetFontSize(16).To(g.Label("Not updating Vencord due to being in DevMode"))
 						}
-						return g.Label("Latest Vencord Arabic Version: " + LatestHash)
+						return g.Style().SetColor(g.StyleColorText, uiMutedText).SetFontSize(16).To(g.Label("Latest Vencord Arabic Version: " + LatestHash))
 					}, func() g.Widget {
-						return renderErrorCard(DiscordRed, "Failed to fetch Info from GitHub: "+GithubError.Error(), 40)
+						return renderErrorCard(uiRed, "Failed to fetch Info from GitHub: "+GithubError.Error(), 40)
 					},
 				},
 			),
