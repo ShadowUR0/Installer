@@ -1,4 +1,4 @@
-//go:build !cli
+//go:build !cli && !wails
 
 /*
  * SPDX-License-Identifier: GPL-3.0
@@ -165,7 +165,6 @@ func handleOpenAsarConfirmed() {
 				g.OpenPopup("#openasar-patched")
 				g.Update()
 			}
-		}
 	}
 }
 
@@ -486,31 +485,27 @@ func renderInstaller() g.Widget {
 					Size(w - 16).
 					Flags(g.InputTextFlagsCallbackCompletion).
 					OnChange(onCustomInputChanged).
-					// this library has its own autocomplete but it's broken
 					Callback(
 						func(data imgui.InputTextCallbackData) int32 {
 							if len(candidates) == 0 {
 								return 0
 							}
-							// just wrap around
+
 							if autoCompleteIdx >= len(candidates) {
 								autoCompleteIdx = 0
 							}
 
-							// used by change handler
 							didAutoComplete = true
 
 							start := len(customDir)
-							// Delete previous auto complete
 							if lastAutoComplete != "" {
 								start -= len(lastAutoComplete)
 								data.DeleteBytes(start, len(lastAutoComplete))
-							} else if autoCompleteFile != "" { // delete partial input
+							} else if autoCompleteFile != "" {
 								start -= len(autoCompleteFile)
 								data.DeleteBytes(start, len(autoCompleteFile))
 							}
 
-							// Insert auto complete
 							lastAutoComplete = candidates[autoCompleteIdx].(string)
 							data.InsertBytes(start, []byte(lastAutoComplete))
 							autoCompleteIdx++
@@ -626,12 +621,10 @@ func loop() {
 			g.WindowShortcut{Key: g.KeyUp, Callback: func() {
 				if radioIdx > 0 {
 					radioIdx--
-				}
 			}},
 			g.WindowShortcut{Key: g.KeyDown, Callback: func() {
 				if radioIdx < customChoiceIdx {
 					radioIdx++
-				}
 			}},
 		).
 		Layout(
