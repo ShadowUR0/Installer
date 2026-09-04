@@ -20,6 +20,7 @@ add_executable(VencordArabicLiquidDX11 WIN32
     "${LIQUIDDX11_DIR}/imgui_draw.cpp"
     "${LIQUIDDX11_DIR}/imgui_tables.cpp"
     "${LIQUIDDX11_DIR}/imgui_widgets.cpp"
+    "${LIQUIDDX11_DIR}/misc/freetype/imgui_freetype.cpp"
     "${LIQUIDDX11_DIR}/backends/imgui_impl_dx11.cpp"
     "${LIQUIDDX11_DIR}/backends/imgui_impl_win32.cpp"
     "${APP_DIR}/src/glass/backdrop.cpp"
@@ -30,6 +31,7 @@ target_compile_features(VencordArabicLiquidDX11 PRIVATE cxx_std_17)
 target_include_directories(VencordArabicLiquidDX11 PRIVATE
     "${LIQUIDDX11_DIR}"
     "${LIQUIDDX11_DIR}/backends"
+    "${LIQUIDDX11_DIR}/thirdparty/freetype/include"
     "${APP_DIR}/src"
 )
 target_compile_definitions(VencordArabicLiquidDX11 PRIVATE
@@ -55,4 +57,5 @@ target_link_libraries(VencordArabicLiquidDX11 PRIVATE
     ole32
     advapi32
     comdlg32
+    "${LIQUIDDX11_DIR}/thirdparty/freetype/win64/freetype.lib"
 )
