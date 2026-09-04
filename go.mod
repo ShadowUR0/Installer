@@ -8,6 +8,7 @@ require (
 	github.com/ProtonMail/go-appdir v1.1.0
 	github.com/fatih/color v1.16.0
 	github.com/manifoldco/promptui v0.9.0
+	github.com/wailsapp/wails/v2 v2.15.0
 	golang.org/x/sys v0.15.0
 )
 
