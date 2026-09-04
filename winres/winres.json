@@ -9,7 +9,7 @@
   "RT_MANIFEST": {
     "#1": {
       "0409": {
-        "description": "An Installer for the Vencord Discord Mod",
+        "description": "Installer for Vencord Arabic",
         "minimum-os": "win10",
         "execution-level": "as invoker",
         "dpi-awareness": "system"
@@ -21,11 +21,11 @@
       "0000": {
         "info": {
           "0409": {
-            "Comments": "Comments",
-            "CompanyName": "Vencord",
-            "FileDescription": "Vencord Installer",
-            "LegalCopyright": "© 2023 Vendicated and Contributors - GPL3.0",
-            "ProductName": "Vencord Installer",
+            "Comments": "Unofficial Arabic-focused Vencord Installer fork",
+            "CompanyName": "ShadowUR0",
+            "FileDescription": "Vencord Arabic Installer",
+            "LegalCopyright": "GPL-3.0 - Vencord Installer contributors and ShadowUR0",
+            "ProductName": "Vencord Arabic Installer",
             "ProductVersion": ""
           }
         }

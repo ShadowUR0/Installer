@@ -29,7 +29,7 @@ func init() {
 		BaseDir = path.Join(dir, "..", "VencordData")
 	} else {
 		Log.Debug("Using UserConfig")
-		BaseDir = appdir.New("Vencord").UserConfig()
+		BaseDir = appdir.New("VencordArabic").UserConfig()
 	}
 	FilesDir = path.Join(BaseDir, "dist")
 	if !ExistsFile(FilesDir) {

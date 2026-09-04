@@ -1,66 +1,41 @@
-# Vencord Installer
+# Vencord Arabic Installer
 
-The Vencord Installer allows you to install [Vencord, the cutest Discord Desktop client mod](https://github.com/Vendicated/Vencord)
-
-![image](https://user-images.githubusercontent.com/45497981/226734476-5fb42420-844d-4e27-ae06-4799118e086e.png)
+Vencord Arabic Installer is an unofficial Arabic-focused fork of the GPL-licensed Vencord Installer.
+It installs builds from [ShadowUR0/Vencord](https://github.com/ShadowUR0/Vencord) and is not affiliated with Discord or the official Vencord team.
 
 ## Usage
 
-See https://vencord.dev/download
+Download the latest Windows build from [GitHub Releases](https://github.com/ShadowUR0/Installer/releases).
+
+The installer supports:
+
+- Installing Vencord Arabic on supported Discord desktop installations.
+- Reinstalling or repairing an existing installation.
+- Uninstalling Vencord Arabic and restoring Discord.
+- Managing optional OpenAsar installation.
+- Selecting a custom Discord installation path when automatic detection is not enough.
+- Automatic installer updates from this repository's releases.
 
 ## Building from source
 
-### Prerequisites 
+### Prerequisites
 
-You need to install the [Go programming language](https://go.dev/doc/install) and GCC, the GNU Compiler Collection (MinGW on Windows)
+Install Go and the platform build dependencies required by the upstream Vencord Installer. On Windows, the release workflow uses MSYS2 with MinGW, GCC and SDL2.
 
-<details>
-<summary>Additionally, if you're using Linux, you have to install some additional dependencies:</summary>
-
-#### Base dependencies
-```sh
-apt install -y pkg-config libsdl2-dev libglx-dev libgl1-mesa-dev
-dnf install pkg-config libGL-devel libXxf86vm-devel
-```
-
-#### X11 dependencies
-```sh
-apt install -y xorg-dev
-dnf install libXcursor-devel libXi-devel libXinerama-devel libXrandr-devel
-```
-
-#### Wayland dependencies
-```sh
-apt install -y libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules
-dnf install wayland-devel libxkbcommon-devel wayland-protocols-devel extra-cmake-modules
-```
-
-</details>
-
-### Building
-
-#### Install dependencies
+### Windows GUI
 
 ```sh
-go mod tidy
+make GUI=1 VERSION=dev
 ```
 
-#### Build the GUI
+The upstream-compatible Makefile writes the GUI executable to `build/VencordInstaller.exe`. Official Vencord Arabic releases rename the final Windows artifact to `VencordArabicInstaller.exe`.
 
-##### Windows / Mac / Linux X11
-```sh
-make GUI=1
-```
+### Other platforms
 
-##### Linux Wayland
-```sh
-make GUI=1 WAYLAND=1
-```
+The upstream Makefile also supports CLI, Linux, Wayland and macOS build targets. Vencord Arabic's published installer release is currently focused on Windows.
 
-#### Build the CLI
-```sh
-make
-```
+## Fork modifications
 
-You might want to pass some flags to this command to get a better build.
-See [the GitHub workflow](https://github.com/Vendicated/VencordInstaller/blob/main/.github/workflows/release.yml) for what flags I pass or if you want more precise instructions
+See [MODIFICATIONS.md](MODIFICATIONS.md) for the fork-specific changes.
+
+Release binaries are built from this repository by GitHub Actions and include SHA-256 checksums.
