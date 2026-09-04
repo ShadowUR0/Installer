@@ -1,0 +1,60 @@
+name: Classic Polished Installer CI
+
+on:
+  push:
+    branches:
+      - feat/classic-apple-polish
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-go
+
+      - name: Install dependencies
+        shell: msys2 {0}
+        run: |
+          export GOROOT=/mingw64/lib/go
+          export GOPATH=/mingw64
+          go mod download
+          go install github.com/tc-hib/go-winres@latest
+
+      - name: Build GUI
+        shell: msys2 {0}
+        run: |
+          export GOROOT=/mingw64/lib/go
+          export GOPATH=/mingw64
+          go-winres make --product-version "git-tag"
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v -tags static -ldflags "-s -w -H=windowsgui -extldflags=-static -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=preview'" -o VencordArabicInstaller-ClassicPolish.exe
+
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash VencordArabicInstaller-ClassicPolish.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  VencordArabicInstaller-ClassicPolish.exe" | Set-Content SHA256SUMS.txt -Encoding ascii
+
+      - name: Upload preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: VencordArabicInstaller-ClassicPolish-Windows
+          path: |
+            VencordArabicInstaller-ClassicPolish.exe
+            SHA256SUMS.txt
