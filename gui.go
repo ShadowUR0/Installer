@@ -289,8 +289,8 @@ func renderFilesDirErr() g.Widget {
 
 func Tooltip(label string) g.Widget {
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 10, 8).
-		SetStyleFloat(g.StyleVarWindowRounding, 8).
+		SetStyle(g.StyleVarWindowPadding, 11, 8).
+		SetStyleFloat(g.StyleVarWindowRounding, 10).
 		To(
 			g.Tooltip(label),
 		)
@@ -303,17 +303,18 @@ func InfoModal(id, title, description string) g.Widget {
 func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 	isDynamic := strings.HasPrefix(id, "#modal") && !strings.Contains(description, "\n")
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 30, 30).
-		SetStyleFloat(g.StyleVarWindowRounding, 12).
+		SetStyle(g.StyleVarWindowPadding, 32, 28).
+		SetStyleFloat(g.StyleVarWindowRounding, 18).
+		SetStyleFloat(g.StyleVarFrameRounding, 11).
 		To(
 			g.PopupModal(id).
 				Flags(g.WindowFlagsNoTitleBar | Ternary(isDynamic, g.WindowFlagsAlwaysAutoResize, 0)).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(30).To(
+						g.Style().SetFontSize(28).To(
 							g.Label(title),
 						),
-						g.Style().SetFontSize(20).To(
+						g.Style().SetFontSize(19).To(
 							g.Label(description).Wrapped(isDynamic),
 						),
 						&CondWidget{id == "#scuffed-install", func() g.Widget {
@@ -324,7 +325,7 @@ func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 									username := os.Getenv("USERNAME")
 									programData := os.Getenv("PROGRAMDATA")
 									g.OpenURL("file://" + path.Join(programData, username))
-								}).Size(200, 30),
+								}).Size(200, 38),
 							)
 						}, nil},
 						g.Dummy(0, 20),
@@ -336,12 +337,12 @@ func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 											acceptedOpenAsar = true
 											g.CloseCurrentPopup()
 										}).
-										Size(100, 30),
+										Size(112, 38),
 									g.Button("Cancel").
 										OnClick(func() {
 											g.CloseCurrentPopup()
 										}).
-										Size(100, 30),
+										Size(112, 38),
 								)
 							},
 							func() g.Widget {
@@ -349,7 +350,7 @@ func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 									OnClick(func() {
 										g.CloseCurrentPopup()
 									}).
-									Size(100, 30)
+									Size(112, 38)
 							},
 						},
 					),
@@ -359,17 +360,18 @@ func RawInfoModal(id, title, description string, isOpenAsar bool) g.Widget {
 
 func UpdateModal() g.Widget {
 	return g.Style().
-		SetStyle(g.StyleVarWindowPadding, 30, 30).
-		SetStyleFloat(g.StyleVarWindowRounding, 12).
+		SetStyle(g.StyleVarWindowPadding, 32, 28).
+		SetStyleFloat(g.StyleVarWindowRounding, 18).
+		SetStyleFloat(g.StyleVarFrameRounding, 11).
 		To(
 			g.PopupModal("#update-prompt").
 				Flags(g.WindowFlagsNoTitleBar | g.WindowFlagsAlwaysAutoResize).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(30).To(
+						g.Style().SetFontSize(28).To(
 							g.Label("Your Installer is outdated!"),
 						),
-						g.Style().SetFontSize(20).To(
+						g.Style().SetFontSize(19).To(
 							g.Label(
 								"Would you like to update now?\n\n"+
 									"Once you press Update Now, the new installer will automatically be downloaded.\n"+
@@ -398,12 +400,12 @@ func UpdateModal() g.Widget {
 										}
 									}
 								}).
-								Size(100, 30),
+								Size(118, 38),
 							g.Button("Later").
 								OnClick(func() {
 									g.CloseCurrentPopup()
 								}).
-								Size(100, 30),
+								Size(100, 38),
 						),
 					),
 				),
@@ -434,22 +436,22 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Dummy(0, 20),
+		g.Dummy(0, 18),
 		g.Separator(),
-		g.Dummy(0, 5),
+		g.Dummy(0, 8),
 
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFontSize(18).To(
 			renderErrorCard(
 				DiscordYellow,
 				"This is an unofficial Arabic-focused fork based on Vencord. It is not affiliated with Discord or the official Vencord team.\n"+
 					"Source code and releases: github.com/ShadowUR0. Use client modifications at your own risk.",
-				90,
+				84,
 			),
 		),
 
-		g.Dummy(0, 5),
+		g.Dummy(0, 10),
 
-		g.Style().SetFontSize(30).To(
+		g.Style().SetFontSize(28).To(
 			g.Label("Please select an install to patch"),
 		),
 
@@ -461,26 +463,30 @@ func renderInstaller() g.Widget {
 			return g.Label(s)
 		}, nil},
 
-		g.Style().SetFontSize(20).To(
-			g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
-				d := v.(*DiscordInstall)
-				//goland:noinspection GoDeprecation
-				text := strings.Title(d.branch) + " - " + d.path
-				if d.isPatched {
-					text += " [PATCHED]"
-				}
-				return g.RadioButton(text, radioIdx == i).
-					OnChange(makeRadioOnChange(i))
-			}),
-
-			g.RadioButton("Custom Install Location", radioIdx == customChoiceIdx).
-				OnChange(makeRadioOnChange(customChoiceIdx)),
-		),
-
-		g.Dummy(0, 5),
 		g.Style().
-			SetStyle(g.StyleVarFramePadding, 16, 16).
+			SetStyle(g.StyleVarItemSpacing, 10, 10).
 			SetFontSize(20).
+			To(
+				g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
+					d := v.(*DiscordInstall)
+					//goland:noinspection GoDeprecation
+					text := strings.Title(d.branch) + " - " + d.path
+					if d.isPatched {
+						text += " [PATCHED]"
+					}
+					return g.RadioButton(text, radioIdx == i).
+						OnChange(makeRadioOnChange(i))
+				}),
+
+				g.RadioButton("Custom Install Location", radioIdx == customChoiceIdx).
+					OnChange(makeRadioOnChange(customChoiceIdx)),
+			),
+
+		g.Dummy(0, 8),
+		g.Style().
+			SetStyle(g.StyleVarFramePadding, 14, 14).
+			SetStyleFloat(g.StyleVarFrameRounding, 11).
+			SetFontSize(19).
 			To(
 				g.InputText(&customDir).Hint("The custom location").
 					Size(w - 16).
@@ -524,55 +530,70 @@ func renderInstaller() g.Widget {
 			return g.Label(dir)
 		}),
 
-		g.Dummy(0, 20),
+		g.Dummy(0, 22),
 
-		g.Style().SetFontSize(20).To(
-			g.Row(
-				g.Style().
-					SetColor(g.StyleColorButton, DiscordGreen).
-					SetDisabled(GithubError != nil).
-					To(
-						g.Button("Install").
-							OnClick(handlePatch).
-							Size((w-40)/4, 50),
-						Tooltip("Patch the selected Discord Install"),
-					),
-				g.Style().
-					SetColor(g.StyleColorButton, DiscordBlue).
-					SetDisabled(GithubError != nil).
-					To(
-						g.Button("Reinstall / Repair").
-							OnClick(func() {
-								if IsDevInstall {
-									handlePatch()
-								} else {
-									err := InstallLatestBuilds()
-									if err == nil {
+		g.Style().
+			SetStyle(g.StyleVarItemSpacing, 12, 0).
+			SetFontSize(19).
+			To(
+				g.Row(
+					g.Style().
+						SetColor(g.StyleColorButton, DiscordGreen).
+						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x38, G: 0x91, B: 0x53, A: 0xFF}).
+						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x28, G: 0x6E, B: 0x3F, A: 0xFF}).
+						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetDisabled(GithubError != nil).
+						To(
+							g.Button("Install").
+								OnClick(handlePatch).
+								Size((w-48)/4, 56),
+							Tooltip("Patch the selected Discord Install"),
+						),
+					g.Style().
+						SetColor(g.StyleColorButton, DiscordBlue).
+						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x69, G: 0x74, B: 0xF5, A: 0xFF}).
+						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x4B, G: 0x57, B: 0xD6, A: 0xFF}).
+						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						SetDisabled(GithubError != nil).
+						To(
+							g.Button("Reinstall / Repair").
+								OnClick(func() {
+									if IsDevInstall {
 										handlePatch()
+									} else {
+										err := InstallLatestBuilds()
+										if err == nil {
+											handlePatch()
+										}
 									}
-								}
-							}).
-							Size((w-40)/4, 50),
-						Tooltip("Reinstall & Update Vencord Arabic"),
-					),
-				g.Style().
-					SetColor(g.StyleColorButton, DiscordRed).
-					To(
-						g.Button("Uninstall").
-							OnClick(handleUnpatch).
-							Size((w-40)/4, 50),
-						Tooltip("Unpatch the selected Discord Install"),
-					),
-				g.Style().
-					SetColor(g.StyleColorButton, Ternary(isOpenAsar, DiscordRed, DiscordGreen)).
-					To(
-						g.Button(Ternary(isOpenAsar, "Uninstall OpenAsar", Ternary(currentDiscord != nil, "Install OpenAsar", "(Un-)Install OpenAsar"))).
-							OnClick(handleOpenAsar).
-							Size((w-40)/4, 50),
-						Tooltip("Manage OpenAsar"),
-					),
+								}).
+								Size((w-48)/4, 56),
+							Tooltip("Reinstall & Update Vencord Arabic"),
+						),
+					g.Style().
+						SetColor(g.StyleColorButton, DiscordRed).
+						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0xF2, G: 0x57, B: 0x5A, A: 0xFF}).
+						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0xC9, G: 0x36, B: 0x39, A: 0xFF}).
+						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						To(
+							g.Button("Uninstall").
+								OnClick(handleUnpatch).
+								Size((w-48)/4, 56),
+							Tooltip("Unpatch the selected Discord Install"),
+						),
+					g.Style().
+						SetColor(g.StyleColorButton, Ternary(isOpenAsar, DiscordRed, DiscordGreen)).
+						SetColor(g.StyleColorButtonHovered, Ternary(isOpenAsar, color.RGBA{R: 0xF2, G: 0x57, B: 0x5A, A: 0xFF}, color.RGBA{R: 0x38, G: 0x91, B: 0x53, A: 0xFF})).
+						SetColor(g.StyleColorButtonActive, Ternary(isOpenAsar, color.RGBA{R: 0xC9, G: 0x36, B: 0x39, A: 0xFF}, color.RGBA{R: 0x28, G: 0x6E, B: 0x3F, A: 0xFF})).
+						SetStyleFloat(g.StyleVarFrameRounding, 12).
+						To(
+							g.Button(Ternary(isOpenAsar, "Uninstall OpenAsar", Ternary(currentDiscord != nil, "Install OpenAsar", "(Un-)Install OpenAsar"))).
+								OnClick(handleOpenAsar).
+								Size((w-48)/4, 56),
+							Tooltip("Manage OpenAsar"),
+						),
+				),
 			),
-		),
 
 		InfoModal("#patched", "Successfully Patched", "If Discord is still open, fully close it first.\n"+
 			"Then, start it and verify Vencord installed successfully by looking for its category in Discord Settings"),
@@ -602,9 +623,9 @@ func renderInstaller() g.Widget {
 func renderErrorCard(col color.Color, message string, height float32) g.Widget {
 	return g.Style().
 		SetColor(g.StyleColorChildBg, col).
-		SetStyleFloat(g.StyleVarAlpha, 0.9).
-		SetStyle(g.StyleVarWindowPadding, 10, 10).
-		SetStyleFloat(g.StyleVarChildRounding, 5).
+		SetStyleFloat(g.StyleVarAlpha, 0.86).
+		SetStyle(g.StyleVarWindowPadding, 14, 12).
+		SetStyleFloat(g.StyleVarChildRounding, 13).
 		To(
 			g.Child().
 				Size(g.Auto, height).
@@ -636,18 +657,21 @@ func loop() {
 		).
 		Layout(
 			g.Align(g.AlignCenter).To(
-				g.Style().SetFontSize(40).To(
+				g.Style().SetFontSize(38).To(
 					g.Label("Vencord Arabic Installer"),
 				),
 			),
 
-			g.Dummy(0, 20),
-			g.Style().SetFontSize(20).To(
+			g.Dummy(0, 18),
+			g.Style().SetFontSize(19).To(
 				g.Row(
 					g.Label(Ternary(IsDevInstall, "Dev Install: ", "Vencord Arabic will be downloaded to: ")+FilesDir),
 					g.Style().
 						SetColor(g.StyleColorButton, DiscordBlue).
-						SetStyle(g.StyleVarFramePadding, 4, 4).
+						SetColor(g.StyleColorButtonHovered, color.RGBA{R: 0x69, G: 0x74, B: 0xF5, A: 0xFF}).
+						SetColor(g.StyleColorButtonActive, color.RGBA{R: 0x4B, G: 0x57, B: 0xD6, A: 0xFF}).
+						SetStyle(g.StyleVarFramePadding, 12, 6).
+						SetStyleFloat(g.StyleVarFrameRounding, 10).
 						To(
 							g.Button("Open Directory").OnClick(func() {
 								g.OpenURL("file://" + FilesDir)
@@ -657,7 +681,7 @@ func loop() {
 				&CondWidget{!IsDevInstall, func() g.Widget {
 					return g.Label("To customise this location, set the environment variable 'VENCORD_USER_DATA_DIR' and restart me").Wrapped(true)
 				}, nil},
-				g.Dummy(0, 10),
+				g.Dummy(0, 12),
 				g.Label("Installer Version: "+buildinfo.InstallerTag+" ("+buildinfo.InstallerGitHash+")"+Ternary(IsSelfOutdated, " - OUTDATED", "")),
 				g.Label("Local Vencord Arabic Version: "+InstalledHash),
 				&CondWidget{
