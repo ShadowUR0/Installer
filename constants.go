@@ -11,7 +11,7 @@ import (
 	"vencordinstaller/buildinfo"
 )
 
-const ReleaseUrl = "https://api.github.com/repos/ShadowUR0/Vencord/releases/latest"
+const ReleaseUrl = "https://api.github.com/repos/ShadowUR0/Vencord/releases/tags/devbuild"
 const ReleaseUrlFallback = ReleaseUrl
 const InstallerReleaseUrl = "https://api.github.com/repos/ShadowUR0/Installer/releases/latest"
 const InstallerReleaseUrlFallback = InstallerReleaseUrl
