@@ -32,7 +32,6 @@ const els = {
     modalBackdrop: $("modalBackdrop"),
     modalTitle: $("modalTitle"),
     modalMessage: $("modalMessage"),
-    modalExtra: $("modalExtra"),
     modalClose: $("modalClose"),
     modalSecondary: $("modalSecondary"),
     busyOverlay: $("busyOverlay"),
@@ -71,6 +70,14 @@ function branchLabel(branch) {
 function decorateLiquidGlass(root = document) {
     for (const element of root.querySelectorAll(".liquid-glass:not([data-liquid-ready])")) {
         element.dataset.liquidReady = "true";
+
+        if (element.tagName === "BUTTON") {
+            const content = document.createElement("span");
+            content.className = "liquid-content";
+            while (element.firstChild) content.appendChild(element.firstChild);
+            element.appendChild(content);
+        }
+
         for (const side of ["top", "right", "bottom", "left"]) {
             const edge = document.createElement("span");
             edge.className = `glass-edge ${side}`;
@@ -84,13 +91,23 @@ function decorateLiquidGlass(root = document) {
             const y = ((event.clientY - rect.top) / Math.max(rect.height, 1)) * 100;
             element.style.setProperty("--pointer-x", `${x}%`);
             element.style.setProperty("--pointer-y", `${y}%`);
-            element.style.setProperty("--light-angle", `${Math.atan2(event.clientY - (rect.top + rect.height / 2), event.clientX - (rect.left + rect.width / 2))}rad`);
         });
         element.addEventListener("pointerleave", () => {
             element.style.removeProperty("--pointer-x");
             element.style.removeProperty("--pointer-y");
         });
     }
+}
+
+function setLiquidButtonText(button, text) {
+    const content = button.querySelector(":scope > .liquid-content");
+    if (content) {
+        content.textContent = text;
+        return;
+    }
+    button.textContent = text;
+    delete button.dataset.liquidReady;
+    decorateLiquidGlass(button.parentElement || document);
 }
 
 function setBusy(busy, text = "Working...") {
@@ -110,9 +127,9 @@ function showModal({
 }) {
     els.modalTitle.textContent = title;
     els.modalMessage.textContent = message;
-    els.modalClose.textContent = primaryLabel;
+    setLiquidButtonText(els.modalClose, primaryLabel);
     els.modalSecondary.classList.toggle("hidden", !secondaryLabel);
-    if (secondaryLabel) els.modalSecondary.textContent = secondaryLabel;
+    if (secondaryLabel) setLiquidButtonText(els.modalSecondary, secondaryLabel);
     modalPrimaryAction = onPrimary;
     modalSecondaryAction = onSecondary;
     els.modalBackdrop.classList.remove("hidden");
@@ -138,7 +155,7 @@ els.modalSecondary.addEventListener("click", async () => {
 });
 
 els.modalBackdrop.addEventListener("click", (event) => {
-    if (event.target === els.modalBackdrop && !modalSecondaryAction) closeModal();
+    if (event.target === els.modalBackdrop && els.modalSecondary.classList.contains("hidden")) closeModal();
 });
 
 function renderVersions() {
@@ -165,6 +182,7 @@ function renderVersions() {
         els.latestLine.classList.add("hidden");
         els.githubError.textContent = `Failed to fetch Info from GitHub: ${status.githubError || "Unknown error"}`;
         els.githubError.classList.remove("hidden");
+        delete els.githubError.dataset.liquidReady;
         decorateLiquidGlass(els.githubError.parentElement);
     }
 
@@ -181,7 +199,7 @@ function selectInstall(index) {
     for (const input of document.querySelectorAll('input[name="discord-install"]')) {
         input.checked = Number(input.value) === index;
     }
-    if (index === -1) els.customPath.focus();
+    if (index === -1 && document.activeElement !== els.customPath) els.customPath.focus();
     updateButtons();
 }
 
@@ -232,11 +250,11 @@ function updateButtons() {
     els.uninstallButton.disabled = blocked || (detected ? !detected.patched : false);
     els.openAsarButton.disabled = blocked;
 
-    if (detected) {
-        els.openAsarButton.textContent = detected.openAsar ? "Uninstall OpenAsar" : "Install OpenAsar";
-    } else {
-        els.openAsarButton.textContent = "(Un-)Install OpenAsar";
-    }
+    const openAsarText = detected
+        ? (detected.openAsar ? "Uninstall OpenAsar" : "Install OpenAsar")
+        : "(Un-)Install OpenAsar";
+    setLiquidButtonText(els.openAsarButton, openAsarText);
+    els.openAsarButton.classList.toggle("removing", Boolean(detected?.openAsar));
 
     decorateLiquidGlass(document);
 }
@@ -246,7 +264,7 @@ function maybeShowUpdatePrompt() {
     state.updatePromptShown = true;
     showModal({
         title: "Your Installer is outdated!",
-        message: "Would you like to update now?\n\nOnce you press Update Now, the new installer will automatically be downloaded and the Installer will reopen.",
+        message: "Would you like to update now?\n\nOnce you press Update Now, the new installer will automatically be downloaded. The Installer will reopen once the update is done.",
         primaryLabel: "Update Now",
         secondaryLabel: "Later",
         onPrimary: updateInstaller,
@@ -317,9 +335,11 @@ els.customRadio.addEventListener("change", () => {
     if (els.customRadio.checked) selectInstall(-1);
 });
 els.customRadioRow.addEventListener("click", () => selectInstall(-1));
-els.customPath.addEventListener("focus", () => selectInstall(-1));
+els.customPath.addEventListener("focus", () => {
+    if (!customSelected()) selectInstall(-1);
+});
 els.customPath.addEventListener("input", async () => {
-    selectInstall(-1);
+    if (!customSelected()) selectInstall(-1);
     state.autocompleteIndex = 0;
     const value = els.customPath.value;
     if (!value) {
@@ -397,8 +417,10 @@ async function boot() {
 
     const poll = setInterval(async () => {
         await loadStatus(false);
-        if (state.status?.ready) clearInterval(poll);
+        if (state.status?.ready && (state.status?.selfOutdated || state.status?.installerTag === "Unknown")) clearInterval(poll);
     }, 700);
+
+    setTimeout(() => clearInterval(poll), 12000);
 }
 
 boot();
