@@ -1,0 +1,62 @@
+name: liquidDX11 Installer CI
+
+on:
+  push:
+    branches:
+      - feat/liquiddx11-native
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+
+      - name: Build Vencord core
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force native_dx11/bundle | Out-Null
+          go build -tags cli -ldflags "-s -w" -o native_dx11/bundle/VencordArabicInstallerCore.exe .
+
+      - name: Fetch liquidDX11 engine
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none https://github.com/poncippg-spec/liquidDX11.git native_dx11/liquidDX11
+          git -C native_dx11/liquidDX11 checkout 00c2b2b19eb5523abde473b2c08220326d4146d4
+
+      - name: Configure native frontend
+        shell: pwsh
+        run: |
+          $liquid = (Resolve-Path native_dx11/liquidDX11).Path -replace '\\','/'
+          cmake -S native_dx11 -B native_dx11/build -A x64 -DLIQUIDDX11_DIR="$liquid"
+
+      - name: Build native liquidDX11 frontend
+        shell: pwsh
+        run: |
+          cmake --build native_dx11/build --config Release --parallel
+          Copy-Item native_dx11/build/Release/VencordArabicLiquidDX11.exe native_dx11/bundle/VencordArabicLiquidDX11.exe
+
+      - name: Build single executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -ldflags "-s -w -H=windowsgui" -o dist/VencordArabicInstaller-LiquidDX11.exe native_dx11/launcher.go
+          Get-FileHash dist/VencordArabicInstaller-LiquidDX11.exe -Algorithm SHA256
+          Get-Item dist/VencordArabicInstaller-LiquidDX11.exe | Select-Object Name,Length
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: VencordArabicInstaller-LiquidDX11-Windows
+          path: dist/VencordArabicInstaller-LiquidDX11.exe
+          if-no-files-found: error
