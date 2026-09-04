@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,134 +7,100 @@
     <link rel="stylesheet" href="./glass.css" />
 </head>
 <body>
-    <svg class="filters" aria-hidden="true" width="0" height="0">
-        <filter id="liquid-distort" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.013 0.02" numOctaves="2" seed="7" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
+    <!--
+      Edge refraction maps. Unlike the old noise distortion, these maps are
+      monotonic: only the inner edge of each glass surface bends the backdrop.
+      This follows the same visual principle as Kyant Backdrop's rounded-rect lens.
+    -->
+    <svg class="filter-defs" aria-hidden="true" width="0" height="0">
+        <defs>
+            <filter id="lens-left" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+                <feImage result="map" preserveAspectRatio="none" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='rgb(255,128,128)'/%3E%3Cstop offset='1' stop-color='rgb(128,128,128)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale="18" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="lens-right" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+                <feImage result="map" preserveAspectRatio="none" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='rgb(128,128,128)'/%3E%3Cstop offset='1' stop-color='rgb(0,128,128)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale="18" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="lens-top" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+                <feImage result="map" preserveAspectRatio="none" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='rgb(128,255,128)'/%3E%3Cstop offset='1' stop-color='rgb(128,128,128)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale="18" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="lens-bottom" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+                <feImage result="map" preserveAspectRatio="none" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='rgb(128,128,128)'/%3E%3Cstop offset='1' stop-color='rgb(128,0,128)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23g)'/%3E%3C/svg%3E" />
+                <feDisplacementMap in="SourceGraphic" in2="map" scale="18" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+        </defs>
     </svg>
 
-    <div class="scene" aria-hidden="true">
-        <div class="orb orb-a"></div>
-        <div class="orb orb-b"></div>
-        <div class="orb orb-c"></div>
-        <div class="mesh"></div>
-    </div>
+    <main class="installer">
+        <h1>Vencord Arabic Installer</h1>
 
-    <main class="app-shell">
-        <header class="titlebar" data-wails-drag>
-            <div class="brand" data-wails-drag>
-                <div class="brand-mark" aria-hidden="true">فـ</div>
-                <div>
-                    <strong>Vencord Arabic</strong>
-                    <span>Installer</span>
-                </div>
+        <section class="installer-info">
+            <div class="path-line">
+                <span id="downloadPrefix">Vencord Arabic will be downloaded to:</span>
+                <span id="filesDir" class="path-value">—</span>
+                <button id="openFolderButton" class="small-button liquid-glass" type="button">Open Directory</button>
             </div>
-            <div class="window-actions" dir="ltr">
-                <button class="window-button" data-action="minimise" aria-label="تصغير">—</button>
-                <button class="window-button close" data-action="close" aria-label="إغلاق">×</button>
-            </div>
-        </header>
+            <p id="directoryHint" class="info-line">To customise this location, set the environment variable 'VENCORD_USER_DATA_DIR' and restart me</p>
+            <div class="info-spacer"></div>
+            <p class="info-line">Installer Version: <span id="installerVersion">—</span></p>
+            <p class="info-line">Local Vencord Arabic Version: <span id="installedHash">—</span></p>
+            <p id="latestLine" class="info-line">Latest Vencord Arabic Version: <span id="latestHash">Checking...</span></p>
+            <div id="githubError" class="error-card liquid-glass hidden"></div>
+        </section>
 
-        <section class="hero glass liquid-surface">
-            <div class="hero-copy">
-                <span class="eyebrow">مثبت Vencord العربي</span>
-                <h1>تثبيت بسيط<br><span>بواجهة زجاجية</span></h1>
-                <p>اختر نسخة Discord ثم ثبت Vencord Arabic او اصلحه او احذفه دون تغيير طريقة التثبيت الاصلية</p>
-            </div>
-            <div class="version-stack">
-                <div class="version-pill">
-                    <span>المثبت محليا</span>
-                    <strong id="installedHash">—</strong>
-                </div>
-                <div class="version-pill emphasis">
-                    <span>احدث اصدار</span>
-                    <strong id="latestHash">جار الفحص</strong>
-                </div>
+        <hr class="separator" />
+
+        <section class="fork-warning liquid-glass">
+            <div>
+                This is an unofficial Arabic-focused fork based on Vencord. It is not affiliated with Discord or the official Vencord team.<br />
+                Source code and releases: github.com/ShadowUR0. Use client modifications at your own risk.
             </div>
         </section>
 
-        <section class="workspace">
-            <article class="glass panel installs-panel">
-                <div class="panel-heading">
-                    <div>
-                        <span class="eyebrow">Discord</span>
-                        <h2>اختر النسخة</h2>
-                    </div>
-                    <button id="refreshButton" class="icon-button" title="اعادة الفحص" aria-label="اعادة الفحص">↻</button>
-                </div>
+        <h2>Please select an install to patch</h2>
 
-                <div id="installList" class="install-list">
-                    <div class="skeleton-card"></div>
-                    <div class="skeleton-card"></div>
-                </div>
-                <div id="emptyState" class="empty-state hidden">
-                    <strong>لم يتم العثور على Discord</strong>
-                    <span>ثبت Discord اولا ثم اضغط اعادة الفحص</span>
-                </div>
-            </article>
+        <section class="selection-area">
+            <div id="emptyState" class="empty-state hidden">No Discord installs found. You first need to install Discord.</div>
+            <div id="installList" class="radio-list"></div>
 
-            <article class="glass panel action-panel">
-                <div class="selected-header">
-                    <div class="discord-logo" aria-hidden="true">◈</div>
-                    <div>
-                        <span id="selectedState" class="status-badge">لم تحدد نسخة</span>
-                        <h2 id="selectedName">Discord</h2>
-                        <p id="selectedPath">اختر نسخة من القائمة</p>
-                    </div>
-                </div>
+            <label class="radio-row" id="customRadioRow">
+                <input id="customRadio" type="radio" name="discord-install" value="-1" />
+                <span class="radio-dot" aria-hidden="true"></span>
+                <span>Custom Install Location</span>
+            </label>
 
-                <div class="action-grid">
-                    <button id="installButton" class="liquid-button primary" disabled>
-                        <span class="button-glow"></span>
-                        <span>تثبيت</span>
-                    </button>
-                    <button id="repairButton" class="liquid-button" disabled>
-                        <span class="button-glow"></span>
-                        <span>اصلاح / تحديث</span>
-                    </button>
-                    <button id="uninstallButton" class="liquid-button danger" disabled>
-                        <span class="button-glow"></span>
-                        <span>الغاء التثبيت</span>
-                    </button>
-                    <button id="openAsarButton" class="liquid-button subtle" disabled>
-                        <span class="button-glow"></span>
-                        <span>OpenAsar</span>
-                    </button>
-                </div>
-
-                <div class="data-path">
-                    <div>
-                        <span>ملفات Vencord Arabic</span>
-                        <code id="filesDir">—</code>
-                    </div>
-                    <button id="openFolderButton" class="text-button">فتح المجلد</button>
-                </div>
-            </article>
+            <div class="custom-input-shell liquid-glass" id="customInputShell">
+                <input id="customPath" type="text" spellcheck="false" autocomplete="off" placeholder="The custom location" />
+            </div>
+            <div id="autocomplete" class="autocomplete hidden"></div>
         </section>
 
-        <footer class="footer glass-thin">
-            <span class="connection-dot" id="connectionDot"></span>
-            <span id="connectionText">جار الاتصال بالـBackend</span>
-            <span class="footer-spacer"></span>
-            <span>Unofficial Arabic fork · GPL-3.0</span>
-        </footer>
+        <div class="actions">
+            <button id="installButton" class="action-button install liquid-glass" type="button">Install</button>
+            <button id="repairButton" class="action-button repair liquid-glass" type="button">Reinstall / Repair</button>
+            <button id="uninstallButton" class="action-button uninstall liquid-glass" type="button">Uninstall</button>
+            <button id="openAsarButton" class="action-button openasar liquid-glass" type="button">(Un-)Install OpenAsar</button>
+        </div>
     </main>
 
     <div id="modalBackdrop" class="modal-backdrop hidden">
-        <div class="modal glass liquid-surface" role="dialog" aria-modal="true">
-            <div id="modalIcon" class="modal-icon">✓</div>
-            <h3 id="modalTitle">تم</h3>
+        <div class="modal liquid-glass" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <h3 id="modalTitle">Message</h3>
             <p id="modalMessage"></p>
-            <button id="modalClose" class="liquid-button primary">حسنا</button>
+            <div id="modalExtra" class="modal-extra hidden"></div>
+            <div class="modal-actions">
+                <button id="modalSecondary" class="modal-button liquid-glass hidden" type="button">Later</button>
+                <button id="modalClose" class="modal-button primary liquid-glass" type="button">Ok</button>
+            </div>
         </div>
     </div>
 
     <div id="busyOverlay" class="busy-overlay hidden">
-        <div class="busy-card glass">
+        <div class="busy-box liquid-glass">
             <div class="spinner"></div>
-            <strong id="busyText">جار التنفيذ</strong>
-            <span>لا تغلق المثبت اثناء تعديل ملفات Discord</span>
+            <span id="busyText">Working...</span>
         </div>
     </div>
 
