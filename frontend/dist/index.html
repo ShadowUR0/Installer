@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vencord Arabic Installer</title>
+    <link rel="stylesheet" href="./glass.css" />
+</head>
+<body>
+    <svg class="filters" aria-hidden="true" width="0" height="0">
+        <filter id="liquid-distort" x="-30%" y="-30%" width="160%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.013 0.02" numOctaves="2" seed="7" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="15" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
+    <div class="scene" aria-hidden="true">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="orb orb-c"></div>
+        <div class="mesh"></div>
+    </div>
+
+    <main class="app-shell">
+        <header class="titlebar" data-wails-drag>
+            <div class="brand" data-wails-drag>
+                <div class="brand-mark" aria-hidden="true">فـ</div>
+                <div>
+                    <strong>Vencord Arabic</strong>
+                    <span>Installer</span>
+                </div>
+            </div>
+            <div class="window-actions" dir="ltr">
+                <button class="window-button" data-action="minimise" aria-label="تصغير">—</button>
+                <button class="window-button close" data-action="close" aria-label="إغلاق">×</button>
+            </div>
+        </header>
+
+        <section class="hero glass liquid-surface">
+            <div class="hero-copy">
+                <span class="eyebrow">مثبت Vencord العربي</span>
+                <h1>تثبيت بسيط<br><span>بواجهة زجاجية</span></h1>
+                <p>اختر نسخة Discord ثم ثبت Vencord Arabic او اصلحه او احذفه دون تغيير طريقة التثبيت الاصلية</p>
+            </div>
+            <div class="version-stack">
+                <div class="version-pill">
+                    <span>المثبت محليا</span>
+                    <strong id="installedHash">—</strong>
+                </div>
+                <div class="version-pill emphasis">
+                    <span>احدث اصدار</span>
+                    <strong id="latestHash">جار الفحص</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="workspace">
+            <article class="glass panel installs-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="eyebrow">Discord</span>
+                        <h2>اختر النسخة</h2>
+                    </div>
+                    <button id="refreshButton" class="icon-button" title="اعادة الفحص" aria-label="اعادة الفحص">↻</button>
+                </div>
+
+                <div id="installList" class="install-list">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+                <div id="emptyState" class="empty-state hidden">
+                    <strong>لم يتم العثور على Discord</strong>
+                    <span>ثبت Discord اولا ثم اضغط اعادة الفحص</span>
+                </div>
+            </article>
+
+            <article class="glass panel action-panel">
+                <div class="selected-header">
+                    <div class="discord-logo" aria-hidden="true">◈</div>
+                    <div>
+                        <span id="selectedState" class="status-badge">لم تحدد نسخة</span>
+                        <h2 id="selectedName">Discord</h2>
+                        <p id="selectedPath">اختر نسخة من القائمة</p>
+                    </div>
+                </div>
+
+                <div class="action-grid">
+                    <button id="installButton" class="liquid-button primary" disabled>
+                        <span class="button-glow"></span>
+                        <span>تثبيت</span>
+                    </button>
+                    <button id="repairButton" class="liquid-button" disabled>
+                        <span class="button-glow"></span>
+                        <span>اصلاح / تحديث</span>
+                    </button>
+                    <button id="uninstallButton" class="liquid-button danger" disabled>
+                        <span class="button-glow"></span>
+                        <span>الغاء التثبيت</span>
+                    </button>
+                    <button id="openAsarButton" class="liquid-button subtle" disabled>
+                        <span class="button-glow"></span>
+                        <span>OpenAsar</span>
+                    </button>
+                </div>
+
+                <div class="data-path">
+                    <div>
+                        <span>ملفات Vencord Arabic</span>
+                        <code id="filesDir">—</code>
+                    </div>
+                    <button id="openFolderButton" class="text-button">فتح المجلد</button>
+                </div>
+            </article>
+        </section>
+
+        <footer class="footer glass-thin">
+            <span class="connection-dot" id="connectionDot"></span>
+            <span id="connectionText">جار الاتصال بالـBackend</span>
+            <span class="footer-spacer"></span>
+            <span>Unofficial Arabic fork · GPL-3.0</span>
+        </footer>
+    </main>
+
+    <div id="modalBackdrop" class="modal-backdrop hidden">
+        <div class="modal glass liquid-surface" role="dialog" aria-modal="true">
+            <div id="modalIcon" class="modal-icon">✓</div>
+            <h3 id="modalTitle">تم</h3>
+            <p id="modalMessage"></p>
+            <button id="modalClose" class="liquid-button primary">حسنا</button>
+        </div>
+    </div>
+
+    <div id="busyOverlay" class="busy-overlay hidden">
+        <div class="busy-card glass">
+            <div class="spinner"></div>
+            <strong id="busyText">جار التنفيذ</strong>
+            <span>لا تغلق المثبت اثناء تعديل ملفات Discord</span>
+        </div>
+    </div>
+
+    <script src="./app.js"></script>
+</body>
+</html>
