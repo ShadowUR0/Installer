@@ -1,0 +1,16 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "VencordArabicInstaller",
+  "outputfilename": "VencordArabicInstaller",
+  "build:tags": "wails",
+  "author": {
+    "name": "Shadow"
+  },
+  "info": {
+    "companyName": "Vencord Arabic",
+    "productName": "Vencord Arabic Installer",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright (c) 2026 Shadow and contributors",
+    "comments": "Unofficial Arabic-focused Vencord installer fork"
+  }
+}
