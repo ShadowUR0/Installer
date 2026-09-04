@@ -1,21 +1,26 @@
-# Vencord Installer
+# Vencord Arabic Installer
 
-The Vencord Installer allows you to install [Vencord, the cutest Discord Desktop client mod](https://github.com/Vendicated/Vencord)
-
-![image](https://user-images.githubusercontent.com/45497981/226734476-5fb42420-844d-4e27-ae06-4799118e086e.png)
+Vencord Arabic Installer is an unofficial Arabic-focused fork of the GPL-licensed Vencord Installer.
+It installs builds from [ShadowUR0/Vencord](https://github.com/ShadowUR0/Vencord) and is not affiliated with Discord or the official Vencord team.
 
 ## Usage
 
-See https://vencord.dev/download
+Download the latest Windows build from [GitHub Releases](https://github.com/ShadowUR0/Installer/releases).
+
+The installer can install, repair/reinstall, uninstall Vencord Arabic, and optionally manage OpenAsar for supported Discord desktop installations.
+
+## Code signing policy
+
+See the project [Code signing policy](CODE_SIGNING_POLICY.md).
 
 ## Building from source
 
-### Prerequisites 
+### Prerequisites
 
-You need to install the [Go programming language](https://go.dev/doc/install) and GCC, the GNU Compiler Collection (MinGW on Windows)
+Install the [Go programming language](https://go.dev/doc/install) and GCC, the GNU Compiler Collection (MinGW on Windows).
 
 <details>
-<summary>Additionally, if you're using Linux, you have to install some additional dependencies:</summary>
+<summary>Additionally, if you're using Linux, install these dependencies:</summary>
 
 #### Base dependencies
 ```sh
@@ -37,30 +42,30 @@ dnf install wayland-devel libxkbcommon-devel wayland-protocols-devel extra-cmake
 
 </details>
 
-### Building
+### Build
 
-#### Install dependencies
+Install dependencies:
 
 ```sh
 go mod tidy
 ```
 
-#### Build the GUI
+Windows / macOS / Linux X11 GUI:
 
-##### Windows / Mac / Linux X11
 ```sh
 go build
 ```
 
-##### Linux Wayland
+Linux Wayland:
+
 ```sh
 go build --tags wayland
 ```
 
-#### Build the CLI
-```
+CLI:
+
+```sh
 go build --tags cli
 ```
 
-You might want to pass some flags to this command to get a better build.
-See [the GitHub workflow](https://github.com/Vendicated/VencordInstaller/blob/main/.github/workflows/release.yml) for what flags I pass or if you want more precise instructions
+Release builds are produced by the workflows in `.github/workflows` so the binary can be traced back to the repository source and build configuration.
