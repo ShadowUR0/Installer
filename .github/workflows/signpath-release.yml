@@ -1,0 +1,87 @@
+name: Sign Windows release with SignPath
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build-and-sign:
+    if: github.ref_type == 'tag'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-go
+
+      - name: Install dependencies
+        shell: msys2 {0}
+        run: |
+          export GOROOT=/mingw64/lib/go
+          export GOPATH=/mingw64
+          go mod download
+          go install github.com/tc-hib/go-winres@latest
+
+      - name: Build unsigned Windows installer
+        shell: msys2 {0}
+        run: |
+          export GOROOT=/mingw64/lib/go
+          export GOPATH=/mingw64
+          go-winres make --product-version "git-tag"
+          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v -tags static -ldflags "-s -w -H=windowsgui -extldflags=-static -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VencordArabicInstaller.exe
+
+      - name: Upload unsigned artifact for origin verification
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: VencordArabicInstaller-Unsigned
+          path: VencordArabicInstaller.exe
+          if-no-files-found: error
+
+      - name: Submit SignPath signing request
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
+          organization-id: '${{ vars.SIGNPATH_ORGANIZATION_ID }}'
+          project-slug: '${{ vars.SIGNPATH_PROJECT_SLUG }}'
+          signing-policy-slug: '${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}'
+          github-artifact-id: '${{ steps.upload-unsigned.outputs.artifact-id }}'
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Verify signed file exists
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "signed/VencordArabicInstaller.exe")) {
+            throw "SignPath did not return signed/VencordArabicInstaller.exe"
+          }
+          Get-AuthenticodeSignature "signed/VencordArabicInstaller.exe" | Format-List *
+
+      - name: Create signed checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "signed/VencordArabicInstaller.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  VencordArabicInstaller.exe" | Set-Content "signed/SHA256SUMS.txt" -Encoding ascii
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VencordArabicInstaller-Signed-Windows
+          path: |
+            signed/VencordArabicInstaller.exe
+            signed/SHA256SUMS.txt
+          if-no-files-found: error
