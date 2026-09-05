@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDisplayName</key>
-	<string>Vencord Installer</string>
+	<string>Vencord Arabic Installer</string>
 	<key>CFBundleExecutable</key>
 	<string>VencordInstaller</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.vendicated.vencordinstaller</string>
+	<string>dev.shadowur0.vencordarabic.installer</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Vencord Installer</string>
+	<string>Vencord Arabic Installer</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -31,7 +31,7 @@
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright © 2026 Vendicated and contributors</string>
+	<string>Copyright © 2026 Vencord contributors and Vencord Arabic contributors</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
