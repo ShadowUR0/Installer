@@ -13,7 +13,7 @@ import (
 
 const ReleaseUrl = "https://api.github.com/repos/ShadowUR0/Vencord/releases/tags/devbuild"
 const ReleaseUrlFallback = ReleaseUrl
-const InstallerReleaseUrl = "https://api.github.com/repos/ShadowUR0/Installer/releases/latest"
+const InstallerReleaseUrl = "https://api.github.com/repos/ShadowUR0/Installer/releases/tags/latest"
 const InstallerReleaseUrlFallback = InstallerReleaseUrl
 
 var UserAgent = "VencordArabicInstaller/" + buildinfo.InstallerGitHash + " (https://github.com/ShadowUR0/Installer)"
