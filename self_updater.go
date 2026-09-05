@@ -46,35 +46,39 @@ func init() {
 }
 
 func GetInstallerDownloadLink() string {
-	const BaseUrl = "https://github.com/ShadowUR0/Installer/releases/latest/download/"
+	const BaseUrl = "https://github.com/ShadowUR0/Installer/releases/download/latest/"
+
 	switch runtime.GOOS {
 	case "windows":
 		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "VencordArabicInstallerCli.exe", "VencordArabicInstaller.exe")
 		return BaseUrl + filename
 	case "darwin":
-		return BaseUrl + "VencordInstaller.MacOS.zip"
+		return BaseUrl + "VencordArabicInstaller-macos-universal.dmg"
 	case "linux":
-		return BaseUrl + "VencordInstallerCli-linux"
+		switch runtime.GOARCH {
+		case "amd64":
+			return BaseUrl + "VencordArabicInstallerCli-linux-x86_64"
+		case "arm64":
+			return BaseUrl + "VencordArabicInstallerCli-linux-arm64"
+		default:
+			return ""
+		}
 	default:
 		return ""
 	}
 }
 
 func CanUpdateSelf() bool {
-	//goland:noinspection GoBoolExpressions
-	return IsSelfOutdated && runtime.GOOS != "darwin"
+	// macOS updates are distributed as a DMG and cannot safely replace the running app bundle.
+	return IsSelfOutdated && runtime.GOOS != "darwin" && GetInstallerDownloadLink() != ""
 }
 
 func UpdateSelf() error {
 	if !CanUpdateSelf() {
-		return errors.New("Cannot update self. Either no update available or macos")
+		return errors.New("cannot update self: no compatible automatic update is available")
 	}
 
 	url := GetInstallerDownloadLink()
-	if url == "" {
-		return errors.New("Failed to get installer download link")
-	}
-
 	Log.Debug("Updating self from", url)
 
 	ownExePath, err := os.Executable()
@@ -89,17 +93,21 @@ func UpdateSelf() error {
 		return err
 	}
 	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("failed to download installer update: HTTP %s", res.Status)
+	}
 
 	tmp, err := os.CreateTemp(ownExeDir, "VencordArabicInstallerUpdate")
 	if err != nil {
-		return fmt.Errorf("Failed to create tempfile: %w", err)
+		return fmt.Errorf("failed to create tempfile: %w", err)
 	}
 	defer func() {
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 	}()
+
 	if err = tmp.Chmod(0o755); err != nil {
-		return fmt.Errorf("Failed to chmod 755", tmp.Name()+":", err)
+		return fmt.Errorf("failed to chmod %s: %w", tmp.Name(), err)
 	}
 
 	if _, err = io.Copy(tmp, res.Body); err != nil {
@@ -112,12 +120,12 @@ func UpdateSelf() error {
 
 	if err = os.Remove(ownExePath); err != nil {
 		if err = os.Rename(ownExePath, ownExePath+".old"); err != nil {
-			return fmt.Errorf("Failed to remove/rename own executable: %w", err)
+			return fmt.Errorf("failed to remove/rename own executable: %w", err)
 		}
 	}
 
 	if err = os.Rename(tmp.Name(), ownExePath); err != nil {
-		return fmt.Errorf("Failed to replace self with updated executable. Please manually redownload the installer: %w", err)
+		return fmt.Errorf("failed to replace self with updated executable; please manually redownload the installer: %w", err)
 	}
 
 	return nil
@@ -156,11 +164,11 @@ func RelaunchSelf() error {
 
 	proc, err := os.StartProcess(os.Args[0], argv, attr)
 	if err != nil {
-		return fmt.Errorf("Failed to start new process: %w", err)
+		return fmt.Errorf("failed to start new process: %w", err)
 	}
 
 	if err = proc.Release(); err != nil {
-		return fmt.Errorf("Failed to release new process: %w", err)
+		return fmt.Errorf("failed to release new process: %w", err)
 	}
 
 	os.Exit(0)
