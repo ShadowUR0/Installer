@@ -1,42 +1,54 @@
 #!/bin/sh
-set -e
+set -eu
+
+if [ "$(uname -s)" != "Linux" ]; then
+    echo "This installer script is for Linux."
+    exit 1
+fi
 
 if [ "$(id -u)" -eq 0 ]; then
-    echo "Run me as normal user, not root!"
+    echo "Run me as a normal user, not root."
     exit 1
 fi
 
 if grep -q "CHROMEOS_RELEASE_NAME" /etc/lsb-release 2>/dev/null; then
-	echo "ChromeOS is not supported! Use the chrome extension. https://chromewebstore.google.com/detail/vencord-web/cbghhgpcnddeihccjmnadmkaejncjndb"
-	exit 1
+    echo "ChromeOS is not supported by the desktop installer. Use the browser build instead:"
+    echo "https://shadowur0.github.io/Vencord/#browser"
+    exit 1
 fi
 
-outfile=$(mktemp --tmpdir="$HOME")
-trap 'rm -f "$outfile"' EXIT
+case "$(uname -m)" in
+    x86_64|amd64)
+        asset="VencordArabicInstallerCli-linux-x86_64"
+        ;;
+    aarch64|arm64)
+        asset="VencordArabicInstallerCli-linux-arm64"
+        ;;
+    *)
+        echo "Unsupported CPU architecture: $(uname -m)"
+        exit 1
+        ;;
+esac
 
-echo "Downloading Installer..."
+outfile=$(mktemp "$HOME/.vencord-arabic-installer.XXXXXX")
+trap 'rm -f "$outfile"' EXIT INT TERM
 
-set -- "XDG_CONFIG_HOME=$XDG_CONFIG_HOME"
+url="https://github.com/ShadowUR0/Installer/releases/download/latest/$asset"
 
-curl -sS https://github.com/Vendicated/VencordInstaller/releases/latest/download/VencordInstallerCli-Linux \
-  --output "$outfile" \
-  --location \
-  --fail
-
+echo "Downloading Vencord Arabic Installer..."
+curl -fsSL "$url" -o "$outfile"
 chmod +x "$outfile"
 
-if command -v sudo >/dev/null; then
-  echo "Running with sudo"
-  sudo env "$@" "$outfile"
-elif command -v doas >/dev/null; then
-  echo "Running with doas"
-  doas env "$@" "$outfile"
-elif command -v run0 >/dev/null; then
-  echo "Running with run0"
-  run0 env "$@" "$outfile"
-elif command -v pkexec >/dev/null; then
-  echo "Running with pkexec"
-  pkexec env "$@" "SUDO_USER=$(whoami)" "$outfile"
-else
-  echo "Neither sudo nor doas were found. Please install either of them to proceed."
-fi
+for elevate in sudo doas run0 pkexec; do
+    if command -v "$elevate" >/dev/null 2>&1; then
+        echo "Elevating with $elevate"
+        "$elevate" env \
+            "XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-}" \
+            "SUDO_USER=$(id -un)" \
+            "$outfile" "$@"
+        exit $?
+    fi
+done
+
+echo "Please install sudo, doas, run0, or pkexec to continue."
+exit 1
