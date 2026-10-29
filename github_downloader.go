@@ -23,6 +23,7 @@ import (
 
 type GithubRelease struct {
 	Name    string `json:"name"`
+	Body    string `json:"body"`
 	TagName string `json:"tag_name"`
 	Assets  []struct {
 		Name        string `json:"name"`
