@@ -14,12 +14,41 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"time"
 	"vencordinstaller/buildinfo"
 )
 
 var IsSelfOutdated = false
 var SelfUpdateCheckDoneChan = make(chan bool, 1)
+
+// The installer uses a rolling "latest" tag, which does not change between
+// releases. Compare the commit embedded in each binary with the release notes
+// instead of comparing only the fixed tag name.
+func releaseSourceCommit(body string) string {
+    const prefix = "Source commit:"
+    for _, line := range strings.Split(body, "\n") {
+        line = strings.TrimSpace(line)
+        if !strings.HasPrefix(line, prefix) {
+            continue
+        }
+        hash := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+        if len(hash) != 40 {
+            continue
+        }
+        valid := true
+        for _, ch := range hash {
+            if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) {
+                valid = false
+                break
+            }
+        }
+        if valid {
+            return strings.ToLower(hash)
+        }
+    }
+    return ""
+}
 
 func init() {
 	//goland:noinspection GoBoolExpressions
@@ -38,7 +67,14 @@ func init() {
 			Log.Warn("Failed to check for self updates:", err)
 			SelfUpdateCheckDoneChan <- false
 		} else {
-			IsSelfOutdated = res.TagName != buildinfo.InstallerTag
+			sourceCommit := releaseSourceCommit(res.Body)
+            if sourceCommit != "" && buildinfo.InstallerGitHash != buildinfo.VersionUnknown {
+                // The build embeds git rev-parse --short HEAD.
+                IsSelfOutdated = !strings.HasPrefix(sourceCommit, strings.ToLower(buildinfo.InstallerGitHash))
+            } else {
+                // Tagged releases or old release notes: retain the original behavior.
+                IsSelfOutdated = res.TagName != buildinfo.InstallerTag
+            }
 			Log.Debug("Is self outdated?", IsSelfOutdated)
 			SelfUpdateCheckDoneChan <- true
 		}
